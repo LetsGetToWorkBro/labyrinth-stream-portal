@@ -1,2 +1,2 @@
-# labyrinth-member-portal
-Labyrinth BJJ Member Portal — live stream, schedule, recordings, class management
+# labyrinth-stream-portal
+Labyrinth BJJ Stream Portal — live stream, schedule, recordings, class management
