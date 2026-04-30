@@ -452,7 +452,7 @@ body {
         <span class="nav-logo-name">Labyrinth</span>
       </div>
       <div class="live-badge"><div class="live-dot"></div>Live</div>
-      <span class="viewer-count">247 watching</span>
+      <span class="viewer-count">x watching</span>
     </div>
     <div class="nav-right">
       <button class="nav-btn">
@@ -731,7 +731,7 @@ body {
     <aside class="sidebar-right">
       <div class="chat-header">
         <span class="chat-title" id="chatTitle">Live Chat</span>
-        <span class="chat-count">247 online</span>
+        <span class="chat-count">x online</span>
       </div>
       <div class="chat-tabs">
         <button class="chat-tab active">Chat</button>
@@ -1307,17 +1307,6 @@ document.addEventListener('keydown', e => {
 /* ══════════════════════════════════════════════════════════════
    CHAT + ACTIVITY  (demo social feed — keeps UI alive)
    ══════════════════════════════════════════════════════════════ */
-const CHAT_USERS = [
-  {name:'Carlos M.',belt:'blue',  color:'#3b82f6',bg:'rgba(59,130,246,.15)',i:'CM'},
-  {name:'Tony S.',  belt:'purple',color:'#a855f7',bg:'rgba(168,85,247,.15)',i:'TS'},
-  {name:'Maria R.', belt:'white', color:'#e5e7eb',bg:'rgba(229,231,235,.1)',i:'MR'},
-  {name:'Jake L.',  belt:'brown', color:'#ea580c',bg:'rgba(234,88,12,.15)', i:'JL'},
-  {name:'Ana P.',   belt:'blue',  color:'#3b82f6',bg:'rgba(59,130,246,.15)',i:'AP'}
-];
-const CHAT_MSGS = [
-  'OSS!! 🤙','Great detail on the hip escape!','Can you show the grip break again?',
-  'This is exactly what I needed 🔥','How do you deal with a stiff passer?','OSS from Houston!'
-];
 const chatEl = document.getElementById('chatMessages');
 
 function ts() { const d = new Date(); return `${d.getHours()}:${pad(d.getMinutes())}`; }
@@ -1348,15 +1337,6 @@ function addMsg(u, txt, sys) {
    initApp  — fires on DOMContentLoaded
    ══════════════════════════════════════════════════════════════ */
 function initApp() {
-  // Seed chat with demo messages
-  [0,2,4,1,3].forEach((ui, i) =>
-    setTimeout(() => addMsg(CHAT_USERS[ui], CHAT_MSGS[i]), i * 200)
-  );
-  let mi = 5;
-  setInterval(() => {
-    addMsg(CHAT_USERS[Math.floor(Math.random() * CHAT_USERS.length)], CHAT_MSGS[mi % CHAT_MSGS.length]);
-    mi++;
-  }, 4500);
 
   // Activity strip
   const ACTS = [
