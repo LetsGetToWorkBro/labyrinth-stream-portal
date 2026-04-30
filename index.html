@@ -937,7 +937,7 @@ if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         Take Me to the App
       </a>
 
-      <button onclick="this.closest('div').parentElement.remove()"
+      <button onclick="document.getElementById('mobile-warn-overlay').remove()"
               style="background:transparent;border:1px solid rgba(var(--th-rgb),.15);
                      color:rgba(255,255,255,0.3);font-size:12px;font-weight:600;
                      cursor:pointer;padding:8px 20px;border-radius:8px;margin-top:4px;
