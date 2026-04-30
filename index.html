@@ -771,188 +771,594 @@ body {
   </div>
 </div>
 
-<script>
-// ── Global Belt Themes ──
-const BELTS = {
-  white:  { c:'#e5e7eb', r:'229,231,235' },
-  blue:   { c:'#3b82f6', r:'59,130,246' },
-  purple: { c:'#a855f7', r:'168,85,247' },
-  brown:  { c:'#ea580c', r:'234,88,12' },
-  black:  { c:'#eab308', r:'234,179,8' },
-  gold:   { c:'#c9a84c', r:'201,168,76' }
-};
+<!-- ═══════════════════════════════════════════════════════════════
+  LABYRINTH BJJ — STREAMING SITE GAS INTEGRATION
+  ═══════════════════════════════════════════════════════════════
 
-function applyBelt(beltName) {
-  const b = BELTS[beltName] || BELTS.gold;
-  const root = document.documentElement;
-  root.style.setProperty('--th', b.c);
-  root.style.setProperty('--th-rgb', b.r);
-  root.style.setProperty('--th-glow', `rgba(${b.r},.35)`);
+  INSTRUCTIONS:
+  1. Open your streaming site HTML
+  2. Find the <script> tag near the bottom
+  3. DELETE everything between <script> and </script>
+  4. PASTE everything below (from <script> to </script>) in its place
+
+  GAS URL is already set. No other changes needed.
+  ═══════════════════════════════════════════════════════════════ -->
+
+<script>
+/* ── CONFIG ──────────────────────────────────────────────────── */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwybO9_NBFjSYmpDWVjM0TloiyQl5-oI7UZxgAHDILYHjhez8RUp7ncOgwKLoEHa6kj/exec';
+
+/* ── IN-MEMORY STATE ─────────────────────────────────────────── */
+let SESSION      = null;
+let scheduleData = [];
+let filteredDay  = null;
+let streamTimer  = null;
+let weekOffset   = 0;
+
+/* ── GAS HELPER ──────────────────────────────────────────────── */
+// Uses GET + ?payload= to avoid CORS preflight issues with GAS redirects
+async function gas(action, data = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('action', action);
+  if (Object.keys(data).length) url.searchParams.set('payload', JSON.stringify(data));
+  try {
+    const res = await fetch(url.toString());
+    return await res.json();
+  } catch(e) {
+    console.error('[GAS]', action, e);
+    return { error: e.message };
+  }
 }
 
-// Apply Gold by default
-applyBelt('gold');
+/* ══════════════════════════════════════════════════════════════
+   LOGIN
+   ══════════════════════════════════════════════════════════════ */
+async function doLogin() {
+  const emailEl  = document.querySelector('#loginEmail')    || document.querySelector('input[type="email"]');
+  const passEl   = document.querySelector('#loginPassword') || document.querySelector('input[type="password"]');
+  const loginBtn = document.querySelector('.btn-secondary') || document.querySelector('.btn-biometric');
 
-// Belt picker logic (login screen)
-document.querySelectorAll('.belt-chip').forEach(c => {
-  c.addEventListener('click', () => {
-    document.querySelectorAll('.belt-chip').forEach(x => x.classList.remove('active'));
-    c.classList.add('active');
-    applyBelt(c.dataset.belt);
-  });
-});
+  const email    = (emailEl?.value || '').trim();
+  const password = (passEl?.value  || '').trim();
 
-function initLiveStream(data) {
-  if (!data || !data.isLive || !data.videoId) {
-    // Stream offline — show friendly offline state in video area
-    const vc = document.getElementById('video-container') || document.querySelector('.video-wrap');
-    if (vc && !vc.querySelector('iframe')) {
-      vc.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:220px;color:var(--muted);gap:12px;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 10l4.55-2.27A1 1 0 0121 8.68v6.64a1 1 0 01-1.45.9L15 14"/><rect x="3" y="8" width="12" height="8" rx="1"/><line x1="3" y1="3" x2="21" y2="21" stroke="var(--th)" stroke-width="1.5"/></svg><span style="font-size:13px;">No live class right now</span></div>';
+  clearLoginError();
+
+  if (!email || !password) { showLoginError('Email and password are required.'); return; }
+
+  if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Signing in…'; }
+
+  const res = await gas('memberLogin', { email, password });
+
+  if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Sign In'; }
+
+  if (res.success) {
+    SESSION = {
+      token:         res.token,
+      name:          res.name          || res.member?.name  || '',
+      email:         res.email         || email,
+      belt:          res.member?.belt  || 'white',
+      streak:        res.member?.currentStreak || 0,
+      role:          res.member?.role  || '',
+      isAdmin:       res.member?.isAdmin || false,
+      familyMembers: res.familyMembers || [],
+      member:        res.member        || {}
+    };
+    applyBeltTheme(SESSION.belt);
+    updateHeaderProfile();
+    document.getElementById('page-login').style.display = 'none';
+    document.getElementById('app-shell').style.display  = 'flex';
+    await loadAllData();
+
+  } else if (res.requiresOtp) {
+    showLoginError(res.message || 'Check your email for a verification code.');
+  } else {
+    showLoginError(res.error || 'Incorrect email or password.');
+  }
+}
+
+function showLoginError(msg) {
+  let el = document.getElementById('loginError');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loginError';
+    el.style.cssText = 'color:#ef4444;font-size:13px;font-weight:600;margin-bottom:12px;';
+    const passGroup = document.querySelector('.form-group:last-of-type');
+    if (passGroup) passGroup.after(el); else document.querySelector('.login-card')?.append(el);
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function clearLoginError() {
+  const el = document.getElementById('loginError');
+  if (el) { el.textContent = ''; el.style.display = 'none'; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOAD ALL DATA
+   ══════════════════════════════════════════════════════════════ */
+async function loadAllData() {
+  await Promise.all([loadStreamStatus(), loadSchedule(), loadRecordings()]);
+  if (SESSION) updateHeaderProfile();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE STREAM STATUS  (polls every 30s)
+   ══════════════════════════════════════════════════════════════ */
+async function loadStreamStatus() {
+  const data = await gas('getStreamStatus');
+  applyStreamData(data);
+  if (streamTimer) clearInterval(streamTimer);
+  streamTimer = setInterval(async () => applyStreamData(await gas('getStreamStatus')), 30000);
+}
+
+function applyStreamData(data) {
+  const isLive   = !!(data.isLive || data.live);
+  const videoId  = String(data.videoId || data.youtubeId || data.streamId || '');
+  const title    = data.className || data.title || (isLive ? 'Live Class' : 'No stream right now');
+  const coach    = data.instructor || data.coach || '';
+  const location = data.location   || 'Labyrinth BJJ';
+  const viewers  = data.viewerCount || data.viewers || 0;
+
+  // Title / meta text
+  const titleEl = document.querySelector('.stream-title');
+  const metaEl  = document.querySelector('.stream-meta');
+  if (titleEl) titleEl.textContent = title;
+  if (metaEl)  metaEl.textContent  = [coach, location].filter(Boolean).join(' · ');
+
+  // Viewer count
+  const countEl = document.querySelector('.lv-count');
+  if (countEl) countEl.textContent = viewers > 0 ? viewers.toLocaleString() : '—';
+
+  const container = document.querySelector('.video-container');
+  const videoBg   = container?.querySelector('.video-bg');
+  const existing  = container?.querySelector('iframe.yt-player');
+
+  if (isLive && videoId) {
+    if (!existing || !existing.src.includes(videoId)) {
+      existing?.remove();
+      const iframe = document.createElement('iframe');
+      iframe.className = 'yt-player';
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0`;
+      iframe.allow = 'autoplay; encrypted-media; fullscreen';
+      iframe.frameBorder = '0';
+      iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;border-radius:inherit;';
+      if (videoBg) videoBg.after(iframe); else container?.appendChild(iframe);
     }
+    if (videoBg) videoBg.style.display = 'none';
+
+    // YouTube Live Chat
+    const chatWrap = document.getElementById('chatLiveContent');
+    if (chatWrap && !chatWrap.querySelector('iframe.yt-chat')) {
+      const cf = document.createElement('iframe');
+      cf.className = 'yt-chat';
+      cf.src = `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${window.location.hostname || 'localhost'}`;
+      cf.style.cssText = 'width:100%;flex:1;min-height:0;border:none;';
+      chatWrap.insertBefore(cf, chatWrap.firstChild);
+    }
+
+    // Mark live card in schedule
+    document.querySelectorAll('.class-card').forEach(card => {
+      const cardTitle = card.querySelector('.class-name')?.textContent || '';
+      if (cardTitle.toLowerCase().includes(title.substring(0, 12).toLowerCase())) {
+        card.classList.add('live-now');
+      }
+    });
+
+  } else {
+    existing?.remove();
+    if (videoBg) videoBg.style.display = '';
+    document.querySelector('#chatLiveContent iframe.yt-chat')?.remove();
+    document.querySelectorAll('.class-card').forEach(c => c.classList.remove('live-now'));
+  }
+
+  // Nav live dot
+  const dot = document.querySelector('.nav-live-dot');
+  if (dot) dot.style.display = isLive ? 'block' : 'none';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCHEDULE
+   ══════════════════════════════════════════════════════════════ */
+async function loadSchedule() {
+  const res = await gas('getScheduleClasses');
+  const raw = res.classes || res.schedule || res.data || (Array.isArray(res) ? res : []);
+  scheduleData = Array.isArray(raw) ? raw : [];
+  updateWeekLabel();
+  buildDayChips(scheduleData);
+  renderSchedule(scheduleData, filteredDay);
+}
+
+function updateWeekLabel() {
+  const label = document.querySelector('.week-label');
+  if (!label) return;
+  const today = new Date();
+  today.setDate(today.getDate() + weekOffset * 7);
+  const sun = new Date(today); sun.setDate(today.getDate() - today.getDay());
+  const sat = new Date(sun);   sat.setDate(sun.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  label.textContent = `${fmt(sun)} – ${fmt(sat)}, ${sat.getFullYear()}`;
+}
+
+function buildDayChips(classes) {
+  const strip = document.querySelector('.day-strip');
+  if (!strip) return;
+  const dayNames   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const todayName  = dayNames[new Date().getDay()];
+  const daysWithClass = new Set(
+    classes.map(c => String(c.day || c.dayOfWeek || '').substring(0, 3))
+  );
+  strip.querySelectorAll('.day-chip').forEach(chip => {
+    const name = chip.querySelector('.day-name')?.textContent || '';
+    chip.classList.toggle('has-class', daysWithClass.has(name));
+    if (!filteredDay) chip.classList.toggle('active', name === todayName);
+  });
+  if (!filteredDay) filteredDay = todayName;
+}
+
+function renderSchedule(classes, dayFilter) {
+  const list = document.querySelector('.class-list');
+  if (!list) return;
+
+  let shown = classes;
+  if (dayFilter) shown = classes.filter(c =>
+    String(c.day || c.dayOfWeek || '').substring(0, 3) === dayFilter
+  );
+
+  if (!shown.length) {
+    list.innerHTML = `<div style="padding:48px;text-align:center;color:var(--muted);font-size:14px;">No classes scheduled for this day.</div>`;
     return;
   }
 
-  // ── Video player ──
-  const vc = document.getElementById('video-container') || document.querySelector('.video-wrap');
-  if (vc) {
-    vc.innerHTML = '<iframe src="https://www.youtube.com/embed/'+data.videoId+'?autoplay=1&mute=1" allow="autoplay;encrypted-media;fullscreen" allowfullscreen style="width:100%;aspect-ratio:16/9;border:none;display:block;border-radius:var(--r-md);"></iframe>';
-  }
+  list.innerHTML = shown.map(cls => {
+    const live  = cls.isLive || false;
+    const start = esc(cls.startTime || cls.time || '');
+    const end   = esc(cls.endTime   || '');
+    const name  = esc(cls.name || cls.className || cls.title || 'Class');
+    const coach = esc(cls.coach || cls.instructor || '');
+    const type  = (cls.type  || '').toLowerCase();
+    const level = (cls.level || cls.category || '').toLowerCase();
+    const used  = cls.spotsUsed || 0;
+    const max   = cls.spotsMax  || 0;
 
-  // ── Class info overlay — className, instructor, durationMinutes from GAS ──
-  const classNameEl = document.querySelector('.stream-class-name, .live-class-title');
-  if (classNameEl && data.className) classNameEl.textContent = data.className;
+    const typeTag =
+      (type.includes('gi') && !type.includes('no')) ? `<span class="class-tag tag-gi">Gi</span>` :
+      type.includes('no')   ? `<span class="class-tag tag-nogi">No-Gi</span>` :
+      type.includes('open') ? `<span class="class-tag tag-open">Open</span>`  : '';
 
-  const instructorEl = document.querySelector('.stream-instructor, .live-instructor');
-  if (instructorEl && data.instructor) instructorEl.textContent = data.instructor;
+    const levelTag =
+      (level.includes('found') || level.includes('begin')) ? `<span class="class-tag tag-found">Foundations</span>` :
+      level.includes('comp')  ? `<span class="class-tag tag-comp">Competition</span>` :
+      level.includes('kids')  ? `<span class="class-tag tag-kids">Kids</span>`        : '';
 
-  const durationEl = document.querySelector('.stream-duration, .live-duration');
-  if (durationEl && data.durationMinutes) durationEl.textContent = data.durationMinutes + ' min live';
+    const actions = live
+      ? `<span class="class-enrolled">Enrolled</span>
+         <button class="btn-watch-live" onclick="switchPage('live')">
+           <div class="live-dot"></div>Watch Live
+         </button>`
+      : `${max > 0 ? `<span class="class-spots">${used} / ${max} spots</span>` : ''}
+         <button class="btn-enroll" onclick="checkIn(this,'${name}','${start}')">Check In</button>`;
 
-  // ── Viewer count from GAS viewerCount field ──
-  const viewerEl = document.querySelector('.viewer-count, .live-viewers');
-  if (viewerEl) {
-    viewerEl.textContent = (data.viewerCount || 0) + ' watching';
-    viewerEl.style.display = 'flex';
-  }
+    return `
+      <div class="class-card${live ? ' live-now' : ''}">
+        <div class="class-time-block${live ? ' live' : ''}">
+          <div class="class-time-start">${start}</div>
+          ${end ? `<div class="class-time-end">${end}</div>` : ''}
+        </div>
+        <div class="class-info">
+          <div class="class-name">${name}</div>
+          <div class="class-coach">${coach}</div>
+          <div class="class-tags">${typeTag}${levelTag}</div>
+        </div>
+        <div class="class-actions">${actions}</div>
+      </div>`;
+  }).join('');
+}
 
-  // ── Live badge ──
-  const badge = document.querySelector('.live-badge, .live-indicator');
-  if (badge) badge.style.display = 'flex';
-
-  // ── YouTube live chat in right sidebar ──
-  const chatBody = document.querySelector('.chat-messages') || document.querySelector('.chat-body') || document.querySelector('.sidebar-right');
-  if (chatBody) {
-    const chatFrame = document.createElement('iframe');
-    chatFrame.src = 'https://www.youtube.com/live_chat?v='+data.videoId+'&embed_domain='+(location.hostname||'localhost');
-    chatFrame.style.cssText = 'width:100%;height:100%;min-height:420px;border:none;flex:1;display:block;';
-    chatBody.innerHTML = '';
-    chatBody.appendChild(chatFrame);
+/* ══════════════════════════════════════════════════════════════
+   CHECK-IN
+   ══════════════════════════════════════════════════════════════ */
+async function checkIn(btn, className, classTime) {
+  if (!SESSION) { showLoginError('Please log in to check in.'); return; }
+  btn.disabled = true;
+  btn.textContent = '…';
+  const res = await gas('recordCheckIn', {
+    token:      SESSION.token,
+    className:  className,
+    classTime:  classTime,
+    name:       SESSION.name,
+    memberName: SESSION.name
+  });
+  if (res.success) {
+    btn.textContent  = res.alreadyCheckedIn ? '✓ Already In' : '✓ Checked In';
+    btn.style.color  = '#22c55e';
+    btn.style.background = 'rgba(34,197,94,.15)';
+    if (!res.alreadyCheckedIn && res.xpAwarded > 0) showXPToast(`+${res.xpAwarded} XP`);
+  } else {
+    btn.disabled    = false;
+    btn.textContent = res.code === 'OUTSIDE_WINDOW' ? 'Not Yet Open' : 'Check In';
   }
 }
-// ── Login Flow ──
-function doLogin() {
-  const login = document.getElementById('page-login');
-  const app = document.getElementById('app-shell');
-  login.style.transition = 'opacity 0.5s ease-out';
-  login.style.opacity = '0';
+
+/* ══════════════════════════════════════════════════════════════
+   RECORDINGS
+   ══════════════════════════════════════════════════════════════ */
+async function loadRecordings() {
+  const res  = await gas('getStreamArchive');
+  const recs = res.archives || res.recordings || res.items || (Array.isArray(res) ? res : []);
+  renderRecordings(Array.isArray(recs) ? recs : []);
+}
+
+function renderRecordings(recs) {
+  const grid = document.querySelector('.rec-grid');
+  if (!grid) return;
+
+  if (!recs.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:64px;text-align:center;color:var(--muted);font-size:14px;">
+      No recordings yet — they'll appear here after each live class.
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = recs.map(r => {
+    const vid   = r.videoId || r.youtubeId || '';
+    const title = esc(r.title || r.className || 'Class Recording');
+    const coach = esc(r.coach || r.instructor || '');
+    const date  = esc(r.date  || r.recordedAt || r.archivedAt || '');
+    const views = r.views || 0;
+    const dur   = r.durationSeconds ? fmtDur(r.durationSeconds) : '';
+    const isNew = r.isNew || false;
+    const belt  = (r.beltTag || r.level || '').toLowerCase();
+    const bc    = beltColor(belt);
+    const thumb = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+
+    return `
+      <div class="rec-card" onclick="openRecording('${vid}')" style="cursor:pointer;">
+        <div class="rec-thumb" style="position:relative;overflow:hidden;border-radius:var(--r-md) var(--r-md) 0 0;aspect-ratio:16/9;background:var(--faint);">
+          ${thumb ? `<img src="${thumb}" alt="${title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">` : ''}
+          ${isNew ? `<span style="position:absolute;top:8px;left:8px;background:var(--th);color:#05060a;font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;">NEW</span>` : ''}
+          ${dur   ? `<span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">${dur}</span>` : ''}
+          <div class="rec-play-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;background:rgba(0,0,0,.3);">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+        </div>
+        <div class="rec-info" style="padding:12px 14px;">
+          <div class="rec-title" style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px;">${title}</div>
+          <div class="rec-meta" style="font-size:11px;color:var(--muted);">${[coach, date, views > 0 ? views + ' views' : ''].filter(Boolean).join(' · ')}</div>
+          ${bc ? `<div style="margin-top:6px;"><span class="class-tag" style="background:${bc.bg};color:${bc.text};">${belt}</span></div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.rec-card').forEach(card => {
+    const ov = card.querySelector('.rec-play-overlay');
+    if (!ov) return;
+    card.addEventListener('mouseenter', () => ov.style.opacity = '1');
+    card.addEventListener('mouseleave', () => ov.style.opacity = '0');
+  });
+}
+
+function openRecording(videoId) {
+  if (!videoId) return;
+  const container = document.querySelector('.video-container');
+  if (!container) return;
+  container.querySelector('iframe.yt-player')?.remove();
+  const iframe = document.createElement('iframe');
+  iframe.className = 'yt-player';
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0`;
+  iframe.allow = 'autoplay; encrypted-media; fullscreen';
+  iframe.frameBorder = '0';
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;border-radius:inherit;';
+  const bg = container.querySelector('.video-bg');
+  if (bg) { bg.style.display = 'none'; bg.after(iframe); } else container.appendChild(iframe);
+  switchPage('live');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HEADER PROFILE UPDATE
+   ══════════════════════════════════════════════════════════════ */
+function updateHeaderProfile() {
+  if (!SESSION) return;
+  const nameEl   = document.querySelector('.user-name')    || document.querySelector('[data-user-name]');
+  const beltEl   = document.querySelector('.user-belt')    || document.querySelector('[data-user-belt]');
+  const streakEl = document.querySelector('.streak-count') || document.querySelector('[data-streak]');
+  const avatarEl = document.querySelector('.nav-avatar')   || document.querySelector('.user-avatar');
+
+  if (nameEl)   nameEl.textContent   = SESSION.name;
+  if (beltEl)   beltEl.textContent   = SESSION.belt ? cap(SESSION.belt) + ' Belt' : '';
+  if (streakEl) streakEl.textContent = SESSION.streak;
+  if (avatarEl) {
+    const parts = SESSION.name.split(' ');
+    avatarEl.textContent = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BELT THEME
+   ══════════════════════════════════════════════════════════════ */
+const THEMES = {
+  white:  ['#e5e7eb','229,231,235'],
+  blue:   ['#3b82f6','59,130,246'],
+  purple: ['#a855f7','168,85,247'],
+  brown:  ['#ea580c','234,88,12'],
+  black:  ['#c9a84c','201,168,76'],
+};
+function applyBeltTheme(belt) {
+  const [th, rgb] = THEMES[belt?.toLowerCase()] || THEMES.black;
+  document.documentElement.style.setProperty('--th',     th);
+  document.documentElement.style.setProperty('--th-rgb', rgb);
+  document.documentElement.style.setProperty('--th-glow', `rgba(${rgb},.35)`);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════════════════════════ */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+function pad(n) { return String(n).padStart(2, '0'); }
+function fmtDur(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+function beltColor(b) {
+  const map = {
+    white:  { bg:'rgba(229,231,235,.15)', text:'#e5e7eb' },
+    blue:   { bg:'rgba(59,130,246,.15)',  text:'#3b82f6' },
+    purple: { bg:'rgba(168,85,247,.15)',  text:'#a855f7' },
+    brown:  { bg:'rgba(234,88,12,.15)',   text:'#ea580c' },
+    black:  { bg:'rgba(201,168,76,.15)',  text:'#c9a84c' }
+  };
+  return map[b] || null;
+}
+function showXPToast(txt) {
+  const t = document.getElementById('xpToast');
+  if (!t) return;
+  const label = t.querySelector('strong, .xp-amount, span');
+  if (label) label.textContent = txt;
+  t.style.display = 'flex'; t.style.opacity = '1';
   setTimeout(() => {
-    login.style.display = 'none';
-    app.style.display = 'flex';
-    initApp();
-  }, 500);
+    t.style.opacity = '0';
+    setTimeout(() => { t.style.display = 'none'; t.style.opacity = '1'; }, 500);
+  }, 4000);
 }
-document.getElementById('btnBiometric').addEventListener('click', doLogin);
-document.getElementById('btnPassLogin').addEventListener('click', doLogin);
 
-// ── App Navigation ──
+/* ══════════════════════════════════════════════════════════════
+   switchPage
+   ══════════════════════════════════════════════════════════════ */
 function switchPage(pageId) {
-  // Update sidebar active states
-  document.querySelectorAll('.sidebar-nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.page === pageId);
-  });
-
-  // Hide all panels, show active
-  document.querySelectorAll('.page-panel').forEach(panel => {
-    panel.classList.remove('active');
-  });
-  document.getElementById('panel-' + pageId).classList.add('active');
-
-  // Update Chat visibility based on live status
-  const isLive = (pageId === 'live');
-  document.getElementById('chatLiveContent').style.display = isLive ? 'flex' : 'none';
-  document.getElementById('chatOffContent').style.display = isLive ? 'none' : 'flex';
-  document.getElementById('chatTitle').textContent = isLive ? 'Live Chat' : (pageId === 'schedule' ? 'Class Chat' : 'Recordings');
+  document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('panel-' + pageId)?.classList.add('active');
+  document.querySelector(`.sidebar-nav-item[data-page="${pageId}"]`)?.classList.add('active');
+  const isLive = pageId === 'live';
+  const chatLive  = document.getElementById('chatLiveContent');
+  const chatOff   = document.getElementById('chatOffContent');
+  const chatTitle = document.getElementById('chatTitle');
+  if (chatLive)  chatLive.style.display  = isLive ? 'flex' : 'none';
+  if (chatOff)   chatOff.style.display   = isLive ? 'none' : 'flex';
+  if (chatTitle) chatTitle.textContent   = isLive ? 'Live Chat' : (pageId === 'schedule' ? 'Class Chat' : 'Recordings');
 }
 
-// Bind navigation clicks
+/* ══════════════════════════════════════════════════════════════
+   EVENT BINDINGS
+   ══════════════════════════════════════════════════════════════ */
 document.querySelectorAll('.sidebar-nav-item').forEach(item => {
-  if (item.dataset.page) {
-    item.addEventListener('click', () => switchPage(item.dataset.page));
+  if (item.dataset.page) item.addEventListener('click', () => switchPage(item.dataset.page));
+});
+
+document.querySelectorAll('.day-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.day-chip').forEach(x => x.classList.remove('active'));
+    chip.classList.add('active');
+    filteredDay = chip.querySelector('.day-name')?.textContent || null;
+    renderSchedule(scheduleData, filteredDay);
+  });
+});
+
+document.querySelectorAll('.week-btn').forEach((btn, i) => {
+  btn.addEventListener('click', () => { weekOffset += i === 0 ? -1 : 1; loadSchedule(); });
+});
+document.querySelector('.week-today')?.addEventListener('click', () => {
+  weekOffset = 0; filteredDay = null; loadSchedule();
+});
+
+document.querySelectorAll('.rec-filter').forEach(f => {
+  f.addEventListener('click', () => {
+    document.querySelectorAll('.rec-filter').forEach(x => x.classList.remove('active'));
+    f.classList.add('active');
+  });
+});
+
+document.querySelectorAll('.chat-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.chat-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+  });
+});
+
+document.querySelectorAll('.belt-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.belt-chip').forEach(x => x.classList.remove('active'));
+    chip.classList.add('active');
+    applyBeltTheme(chip.dataset.belt || chip.textContent.toLowerCase().trim());
+  });
+});
+
+// Login button wiring
+document.querySelectorAll('.btn-secondary, .btn-biometric').forEach(btn => {
+  if (btn.closest('#app-shell')) return;
+  btn.addEventListener('click', e => { e.preventDefault(); doLogin(); });
+});
+
+// Enter key on login inputs
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const loginPage = document.getElementById('page-login');
+  if (!loginPage || loginPage.style.display === 'none') return;
+  const active = document.activeElement;
+  if (active && ['email','password','text'].includes(active.type)) {
+    e.preventDefault(); doLogin();
   }
 });
 
-// Interactive state toggles
-document.querySelectorAll('.day-chip').forEach(c=>{
-  c.addEventListener('click',()=>{document.querySelectorAll('.day-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');});
-});
-document.querySelectorAll('.rec-filter').forEach(f=>{
-  f.addEventListener('click',()=>{document.querySelectorAll('.rec-filter').forEach(x=>x.classList.remove('active'));f.classList.add('active');});
-});
-document.querySelectorAll('.chat-tab').forEach(t=>{
-  t.addEventListener('click',()=>{document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');});
-});
-
-// ── Dummy Data Engine (Chat & Activity) ──
-const USERS = [
+/* ══════════════════════════════════════════════════════════════
+   CHAT + ACTIVITY  (demo social feed — keeps UI alive)
+   ══════════════════════════════════════════════════════════════ */
+const CHAT_USERS = [
   {name:'Carlos M.',belt:'blue',  color:'#3b82f6',bg:'rgba(59,130,246,.15)',i:'CM'},
   {name:'Tony S.',  belt:'purple',color:'#a855f7',bg:'rgba(168,85,247,.15)',i:'TS'},
   {name:'Maria R.', belt:'white', color:'#e5e7eb',bg:'rgba(229,231,235,.1)',i:'MR'},
   {name:'Jake L.',  belt:'brown', color:'#ea580c',bg:'rgba(234,88,12,.15)', i:'JL'},
   {name:'Ana P.',   belt:'blue',  color:'#3b82f6',bg:'rgba(59,130,246,.15)',i:'AP'}
 ];
-const MSGS = ['OSS!! 🤙','Great detail on the hip escape!','Can you show the grip break again?','This is exactly what I needed 🔥','How do you deal with a stiff passer?','OSS from Houston!'];
+const CHAT_MSGS = [
+  'OSS!! 🤙','Great detail on the hip escape!','Can you show the grip break again?',
+  'This is exactly what I needed 🔥','How do you deal with a stiff passer?','OSS from Houston!'
+];
 const chatEl = document.getElementById('chatMessages');
 
-function ts() {
-  const d = new Date();
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
+function ts() { const d = new Date(); return `${d.getHours()}:${pad(d.getMinutes())}`; }
 
 function addMsg(u, txt, sys) {
+  if (!chatEl) return;
+  const el = document.createElement('div');
   if (sys) {
-    const el = document.createElement('div');
     el.className = 'chat-system'; el.textContent = txt;
-    chatEl.appendChild(el);
   } else {
-    const el = document.createElement('div');
     el.className = 'chat-msg';
-    el.innerHTML = `<div class="msg-avatar" style="background:${u.bg};color:${u.color};">${u.i}</div><div class="msg-body"><div class="msg-header"><span class="msg-name" style="color:${u.color};">${u.name}</span><span class="msg-belt-tag" style="background:${u.bg};color:${u.color};">${u.belt}</span><span class="msg-time">${ts()}</span></div><div class="msg-text">${txt}</div></div>`;
-    chatEl.appendChild(el);
+    el.innerHTML = `
+      <div class="msg-avatar" style="background:${u.bg};color:${u.color};">${u.i}</div>
+      <div class="msg-body">
+        <div class="msg-header">
+          <span class="msg-name" style="color:${u.color};">${u.name}</span>
+          <span class="msg-belt-tag" style="background:${u.bg};color:${u.color};">${u.belt}</span>
+          <span class="msg-time">${ts()}</span>
+        </div>
+        <div class="msg-text">${txt}</div>
+      </div>`;
   }
+  chatEl.appendChild(el);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   initApp  — fires on DOMContentLoaded
+   ══════════════════════════════════════════════════════════════ */
 function initApp() {
-  // Pre-fill some chat
-  [0,2,4,1,3].forEach((ui,i) => setTimeout(() => addMsg(USERS[ui], MSGS[i]), i*200));
-
+  // Seed chat with demo messages
+  [0,2,4,1,3].forEach((ui, i) =>
+    setTimeout(() => addMsg(CHAT_USERS[ui], CHAT_MSGS[i]), i * 200)
+  );
   let mi = 5;
   setInterval(() => {
-    addMsg(USERS[Math.floor(Math.random()*USERS.length)], MSGS[mi % MSGS.length]);
+    addMsg(CHAT_USERS[Math.floor(Math.random() * CHAT_USERS.length)], CHAT_MSGS[mi % CHAT_MSGS.length]);
     mi++;
   }, 4500);
 
-  // Show XP toast
-  setTimeout(() => {
-    const t = document.getElementById('xpToast');
-    t.style.display = 'flex';
-    setTimeout(() => {
-      t.style.opacity = '0';
-      setTimeout(() => { t.style.display = 'none'; }, 500);
-    }, 4000);
-  }, 3000);
-
-  // Activity Strip
+  // Activity strip
   const ACTS = [
     {u:'Carlos M.',color:'#3b82f6',bg:'rgba(59,130,246,.2)',i:'CM',msg:'earned <span class="ae-highlight">+15 XP</span>'},
     {u:'Tony S.',  color:'#a855f7',bg:'rgba(168,85,247,.2)',i:'TS',msg:'<span class="ae-highlight">checked in</span> to Fundamentals'},
@@ -960,32 +1366,43 @@ function initApp() {
     {u:'Jake L.',  color:'#ea580c',bg:'rgba(234,88,12,.2)',  i:'JL',msg:'earned <span class="ae-highlight">Brown Belt</span> 🎉'},
     {u:'250 viewers',color:'#ef4444',bg:'rgba(239,68,68,.15)',i:'🔴',msg:'<span class="ae-highlight">milestone reached!</span>'}
   ];
-
   const strip = document.getElementById('activityScroll');
-  [...ACTS,...ACTS].forEach((a,i) => {
-    const el = document.createElement('div');
-    el.className = 'activity-event';
-    el.innerHTML = `<div class="ae-avatar" style="background:${a.bg};color:${a.color};">${a.i}</div><div class="ae-text"><strong>${a.u}</strong> ${a.msg}</div>${i < ACTS.length*2-1 ? '<div class="ae-sep"></div>' : ''}`;
-    strip.appendChild(el);
+  if (strip) {
+    [...ACTS, ...ACTS].forEach((a, i) => {
+      const el = document.createElement('div');
+      el.className = 'activity-event';
+      el.innerHTML = `
+        <div class="ae-avatar" style="background:${a.bg};color:${a.color};">${a.i}</div>
+        <div class="ae-text"><strong>${a.u}</strong> ${a.msg}</div>
+        ${i < ACTS.length * 2 - 1 ? '<div class="ae-sep"></div>' : ''}`;
+      strip.appendChild(el);
+    });
+  }
+
+  // Chat input / send
+  const inp = document.getElementById('chatInput');
+  const snd = document.getElementById('chatSend');
+  function sendChat() {
+    const v = inp?.value.trim();
+    if (!v) return;
+    const initials = SESSION ? ((SESSION.name.split(' ')[0]?.[0] || '') + (SESSION.name.split(' ')[1]?.[0] || '')).toUpperCase() : 'ME';
+    addMsg({ name:'You', belt: SESSION?.belt || 'gold', color:'var(--th)', bg:'rgba(var(--th-rgb),.15)', i: initials }, v);
+    if (inp) inp.value = '';
+  }
+  snd?.addEventListener('click', sendChat);
+  inp?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+  document.querySelectorAll('.reaction-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      const initials = SESSION ? ((SESSION.name.split(' ')[0]?.[0]||'')+(SESSION.name.split(' ')[1]?.[0]||'')).toUpperCase() : 'ME';
+      addMsg({ name:'You', belt:'gold', color:'var(--th)', bg:'rgba(var(--th-rgb),.15)', i: initials }, b.textContent);
+    });
   });
+
+  // Kick off live data load (public — no login needed)
+  loadAllData();
 }
 
-// User Chat Input
-const inp = document.getElementById('chatInput');
-const snd = document.getElementById('chatSend');
-function sendChat() {
-  const v = inp.value.trim();
-  if(!v) return;
-  addMsg({name:'You',belt:'gold',color:'var(--th)',bg:'rgba(var(--th-rgb),.15)',i:'SJ'}, v);
-  inp.value = '';
-}
-snd.addEventListener('click', sendChat);
-inp.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
-});
-document.querySelectorAll('.reaction-btn').forEach(b => {
-  b.addEventListener('click', () => addMsg({name:'You',belt:'gold',color:'var(--th)',bg:'rgba(var(--th-rgb),.15)',i:'SJ'}, b.textContent));
-});
+document.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
