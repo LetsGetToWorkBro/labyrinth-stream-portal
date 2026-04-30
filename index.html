@@ -785,6 +785,60 @@ body {
   ═══════════════════════════════════════════════════════════════ -->
 
 <script>
+
+   if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+  const overlay = document.createElement('div');
+  overlay.innerHTML = `
+    <div style="position:fixed;inset:0;z-index:9999;
+                background:linear-gradient(160deg,#0a0c14 0%,#050608 50%,#08060e 100%);
+                display:flex;flex-direction:column;align-items:center;justify-content:center;
+                padding:32px 24px;text-align:center;font-family:inherit;">
+
+      <div style="position:absolute;inset:0;opacity:.03;pointer-events:none;
+                  background:repeating-linear-gradient(0deg,transparent,transparent 48px,
+                  rgba(255,255,255,.5) 48px,rgba(255,255,255,.5) 49px)"></div>
+
+      <div style="width:56px;height:56px;border-radius:16px;margin-bottom:24px;
+                  background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.25);
+                  display:flex;align-items:center;justify-content:center;font-size:26px;">
+        🥋
+      </div>
+
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+                  color:var(--th);margin-bottom:10px;">
+        Labyrinth BJJ
+      </div>
+
+      <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:-.02em;">
+        Better in the App
+      </div>
+
+      <div style="font-size:13px;color:rgba(255,255,255,0.45);max-width:260px;
+                  line-height:1.7;margin-bottom:32px;">
+        This site isn't optimized for mobile. Live streams, schedule &amp; recordings
+        are all in the app.
+      </div>
+
+      <a href="https://app.labyrinth.vision"
+         style="display:block;width:100%;max-width:260px;padding:14px;border-radius:12px;
+                background:rgba(var(--th-rgb),.8);color:#fff;text-decoration:none;
+                font-size:14px;font-weight:800;letter-spacing:.02em;margin-bottom:12px;
+                box-shadow:0 8px 24px rgba(var(--th-rgb),.25);">
+        Open App
+      </a>
+
+      <button onclick="this.closest('div').parentElement.remove()"
+              style="background:transparent;border:1px solid rgba(var(--th-rgb),.15);
+                     color:rgba(255,255,255,0.3);font-size:12px;font-weight:600;
+                     cursor:pointer;padding:8px 20px;border-radius:8px;margin-top:4px;
+                     font-family:inherit;">
+        Continue on this site
+      </button>
+
+    </div>
+  `;
+  document.body.prepend(overlay);
+}
 /* ── CONFIG ──────────────────────────────────────────────────── */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwybO9_NBFjSYmpDWVjM0TloiyQl5-oI7UZxgAHDILYHjhez8RUp7ncOgwKLoEHa6kj/exec';
 
