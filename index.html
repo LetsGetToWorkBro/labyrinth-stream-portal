@@ -977,13 +977,14 @@ function clearLoginError() {
   if (el) { el.textContent = ''; el.style.display = 'none'; }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   LOAD ALL DATA
-   ══════════════════════════════════════════════════════════════ */
+// LOAD ALL DATA
 async function loadAllData() {
   await Promise.all([loadStreamStatus(), loadSchedule(), loadRecordings()]);
   if (SESSION) updateHeaderProfile();
 }
+
+// ── AUTO-START: check stream status immediately on page load ──────
+loadStreamStatus();
 
 /* ══════════════════════════════════════════════════════════════
    LIVE STREAM STATUS  (polls every 30s)
