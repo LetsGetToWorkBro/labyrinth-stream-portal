@@ -120,34 +120,53 @@ window.checkExistingSession = async function checkExistingSession() {
   // else: stay on login screen
 };
 
-/** Build the global SESSION object from a Supabase session + member_profiles row. */
+/**
+ * Build the global SESSION object from a Supabase session + member_profiles row.
+ *
+ * BUG-08 fix: member_profiles table is empty (no backfill yet). Avoid showing
+ * wrong defaults (White Belt / Level 1) for every member. If the profile row
+ * is missing, mark belt/level/xp as null so the UI can render a neutral
+ * "profile pending sync" state instead of incorrect data.
+ */
 async function _buildSessionFromSupabase(session, user) {
   // Fetch member profile for belt/XP/check-in count
-  const { data: profile } = await _sb
+  const { data: profile, error: profileError } = await _sb
     .from('member_profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
+  // profile will be null if the member has not been backfilled yet.
+  // Do NOT fall back to 'white' / 0 / 1 — those are wrong defaults that
+  // mislead members about their actual rank. Use null so the UI can
+  // display a "syncing" state instead.
+  const hasProfile = profile && !profileError;
+
   window.SESSION = {
     // Keep GAS-compatible shape so existing code (applyBeltTheme, updateHeaderProfile, etc.) works
     token:         session.access_token,
-    name:          profile?.name  || user.user_metadata?.full_name || user.email,
+    name:          hasProfile ? profile.name  : (user.user_metadata?.full_name || user.email),
     email:         user.email,
-    belt:          profile?.belt  || 'white',
-    stripes:       profile?.stripes || 0,
-    checkinCount:  profile?.checkin_count || 0,
-    xp:            profile?.xp || 0,
-    level:         profile?.level || 1,
+    belt:          hasProfile ? profile.belt  : null,   // null = not yet synced
+    stripes:       hasProfile ? profile.stripes       : null,
+    checkinCount:  hasProfile ? profile.checkin_count : null,
+    xp:            hasProfile ? profile.xp            : null,
+    level:         hasProfile ? profile.level         : null,
     streak:        0,   // not stored in Supabase yet — GAS still owns this
-    role:          profile?.role  || 'member',
+    role:          hasProfile ? profile.role  : 'member',
     isAdmin:       profile?.role === 'admin' || profile?.role === 'owner',
     familyMembers: [],
     member:        profile || {},
+    profileSynced: hasProfile,   // flag for UI to show "pending sync" banner
     // Supabase-specific
     sbUserId:      user.id,
     sbSession:     session,
   };
+
+  if (!hasProfile) {
+    console.warn('[supabase-portal] No member_profiles row for', user.email,
+      '— belt/XP/level will not be displayed until profile is backfilled.');
+  }
 }
 
 /** Called after SESSION is populated to show the app shell. */
@@ -276,10 +295,24 @@ window.submitAccessRequest = async function submitAccessRequest() {
 
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
-  const { error } = await _sb.from('access_requests').insert({ name, email, message });
+  // P1 fix (BUG-06/07): reverted to GAS submission path.
+  // Supabase access_requests table is not the admin source of truth.
+  // GAS sheet (memberRequestAccess) is authoritative until admin panel is wired.
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwybO9_NBFjSYmpDWVjM0TloiyQl5-oI7UZxgAHDILYHjhez8RUp7ncOgwKLoEHa6kj/exec';
+  let gasError = null;
+  try {
+    const res = await fetch(
+      `${GAS_URL}?action=memberRequestAccess&payload=${encodeURIComponent(JSON.stringify({ name, email, phone: '' }))}`,
+      { method: 'GET' }
+    );
+    const data = await res.json();
+    if (!data.success && data.error) gasError = data.error;
+  } catch (e) {
+    gasError = 'Submission failed. Try again.';
+  }
 
-  if (error) {
-    if (msg) { msg.style.cssText='color:#ef4444;font-size:13px;margin-bottom:12px;display:block;'; msg.textContent=error.message||'Submission failed. Try again.'; }
+  if (gasError) {
+    if (msg) { msg.style.cssText='color:#ef4444;font-size:13px;margin-bottom:12px;display:block;'; msg.textContent=gasError; }
     if (btn) { btn.disabled = false; btn.textContent = 'Request Access'; }
     return;
   }
@@ -449,7 +482,9 @@ window.updateHeaderProfileSupabase = function updateHeaderProfileSupabase() {
   if (!window.SESSION) return;
   const s = window.SESSION;
 
-  // Enrich any existing updateHeaderProfile() with Supabase data
+  // Enrich any existing updateHeaderProfile() with Supabase data.
+  // BUG-08: if member_profiles has no row yet (s.profileSynced === false),
+  // belt/level/xp are null — render a neutral placeholder instead of wrong values.
   const nameEl    = document.getElementById('headerName')   || document.querySelector('.profile-name');
   const beltEl    = document.getElementById('headerBelt')   || document.querySelector('.profile-belt');
   const levelEl   = document.getElementById('headerLevel')  || document.querySelector('.profile-level');
@@ -457,10 +492,12 @@ window.updateHeaderProfileSupabase = function updateHeaderProfileSupabase() {
   const checkinEl = document.getElementById('headerCheckin') || document.querySelector('.profile-checkin');
 
   if (nameEl)    nameEl.textContent    = s.name || '';
-  if (beltEl)    beltEl.textContent    = s.belt ? (s.belt[0].toUpperCase() + s.belt.slice(1)) + ' Belt' : '';
-  if (levelEl)   levelEl.textContent   = `Lvl ${s.level ?? 1}`;
-  if (xpEl)      xpEl.textContent      = `${s.xp ?? 0} XP`;
-  if (checkinEl) checkinEl.textContent = `${s.checkinCount ?? 0} Check-ins`;
+  if (beltEl)    beltEl.textContent    = s.belt != null
+    ? (s.belt[0].toUpperCase() + s.belt.slice(1)) + ' Belt'
+    : 'Member';  // profile not yet synced
+  if (levelEl)   levelEl.textContent   = s.level  != null ? `Lvl ${s.level}`  : '';
+  if (xpEl)      xpEl.textContent      = s.xp     != null ? `${s.xp} XP`     : '';
+  if (checkinEl) checkinEl.textContent = s.checkinCount != null ? `${s.checkinCount} Check-ins` : '';
 };
 
 /* ══════════════════════════════════════════════════════════════════
