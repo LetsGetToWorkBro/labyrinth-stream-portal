@@ -385,6 +385,10 @@ body {
 
 .chat-right-only { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 24px; text-align: center; }
 </style>
+  <!-- Supabase JS SDK (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!-- Supabase auth + data layer for stream portal -->
+  <script src="supabase-portal.js"></script>
 </head>
 <body>
 <div id="atmosphere"></div>
@@ -430,7 +434,8 @@ body {
       <input class="form-input" type="password" placeholder="••••••••">
     </div>
 
-    <button class="btn-secondary" id="btnPassLogin">Sign In with Password</button>
+    <button class="btn-secondary" id="btnSignIn" onclick="doSupabaseLogin()">Sign In</button>
+    <p style="text-align:center;margin:10px 0 0;font-size:12px;color:var(--muted);">Not a member? <a id="btnRequestAccess" href="#" style="color:var(--th);font-weight:700;text-decoration:none;" onclick="event.preventDefault();showRequestAccess()">Request Access</a></p>
 
     <!-- Global App Theme Selector (demo tool) -->
     <div style="font-size:10px;text-transform:uppercase;color:var(--muted);margin-top:20px;font-weight:700;">Global App Belt Theme</div>
@@ -481,25 +486,27 @@ body {
       </div>
 
       <div class="sidebar-section-label">Today</div>
-      <div class="schedule-card">
-        <div class="schedule-label">Live Now</div>
-        <div class="schedule-item"><span class="schedule-class">Fundamentals</span><span class="schedule-live">LIVE</span></div>
-        <div class="schedule-item"><span class="schedule-class">No-Gi Advanced</span><span class="schedule-time">7:00 PM</span></div>
-        <div class="schedule-item"><span class="schedule-class">Open Mat</span><span class="schedule-time">8:30 PM</span></div>
+      <div class="schedule-card" id="nextClassCard">
+        <!-- Populated dynamically by renderNextClass() in supabase-portal.js -->
+        <div class="schedule-label">Next Class</div>
+        <div class="schedule-item" style="color:var(--muted);font-size:12px;">Loading…</div>
       </div>
 
       <div class="sidebar-section-label" style="margin-top:auto">Your Stats</div>
-      <div class="stats-card">
+      <div class="stats-card" id="sidebarStatsCard">
+        <!-- Populated by updateHeaderProfileSupabase() after login -->
         <div class="stats-row">
-          <span class="stats-label">Watch Streak</span>
-          <span class="stats-value">🔥 12 days</span>
+          <span class="stats-label">Belt</span>
+          <span class="stats-value" id="headerBelt" style="font-size:11px;">—</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">Check-ins</span>
+          <span class="stats-value2" id="headerCheckin">—</span>
         </div>
         <div class="stats-row" style="margin-bottom:6px">
-          <span class="stats-label">XP This Week</span>
-          <span class="stats-value2">+340</span>
+          <span class="stats-label">Level / XP</span>
+          <span class="stats-value2"><span id="headerLevel">—</span> &bull; <span id="headerXP">—</span></span>
         </div>
-        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:68%"></div></div>
-        <div class="stats-note">68 / 100 XP to LV13</div>
       </div>
     </aside>
 
@@ -1071,6 +1078,8 @@ async function loadSchedule() {
   updateWeekLabel();
   buildDayChips(scheduleData);
   renderSchedule(scheduleData, filteredDay);
+  // Render "Next Class" sidebar card from live schedule data
+  if (typeof renderNextClass === 'function') renderNextClass(scheduleData);
 }
 
 function updateWeekLabel() {
@@ -1275,6 +1284,8 @@ function updateHeaderProfile() {
     const parts = SESSION.name.split(' ');
     avatarEl.textContent = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
   }
+  // Also update Supabase-sourced sidebar stats
+  if (typeof updateHeaderProfileSupabase === 'function') updateHeaderProfileSupabase();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1391,22 +1402,9 @@ document.querySelectorAll('.belt-chip').forEach(chip => {
   });
 });
 
-// Login button wiring
-document.querySelectorAll('.btn-secondary, .btn-biometric').forEach(btn => {
-  if (btn.closest('#app-shell')) return;
-  btn.addEventListener('click', e => { e.preventDefault(); doLogin(); });
-});
-
-// Enter key on login inputs
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  const loginPage = document.getElementById('page-login');
-  if (!loginPage || loginPage.style.display === 'none') return;
-  const active = document.activeElement;
-  if (active && ['email','password','text'].includes(active.type)) {
-    e.preventDefault(); doLogin();
-  }
-});
+// Login button wiring and Enter-key handling are now managed by
+// supabase-portal.js (DOMContentLoaded). Removed old GAS doLogin() listeners
+// that were causing BUG-02 and BUG-03 (dual login race conditions).
 
 /* ══════════════════════════════════════════════════════════════
    CHAT + ACTIVITY  (demo social feed — keeps UI alive)
