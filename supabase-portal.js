@@ -494,9 +494,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 5. Check for existing Supabase session (shared cookie from main app)
   await window.checkExistingSession();
 
-  // 6. Override stream status polling to use Supabase
-  window.loadStreamStatus = window.loadStreamStatusSupabase;
-
-  // 7. Auto-load stream status (no login required for the status badge)
-  await window.loadStreamStatusSupabase();
+  // 6. Stream status polling intentionally left as GAS (window.loadStreamStatus).
+  // BUG-04 fix: the Supabase stream_status table has no write source yet.
+  // Overriding loadStreamStatus here caused a race between the GAS timer
+  // (already set at parse time) and the Supabase timer, toggling live/offline
+  // every ~15s. GAS getStreamStatus remains the live path until stream_status
+  // is populated. Restore this override once a write path exists.
 });

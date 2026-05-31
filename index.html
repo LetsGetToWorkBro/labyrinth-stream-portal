@@ -1402,22 +1402,9 @@ document.querySelectorAll('.belt-chip').forEach(chip => {
   });
 });
 
-// Login button wiring
-document.querySelectorAll('.btn-secondary, .btn-biometric').forEach(btn => {
-  if (btn.closest('#app-shell')) return;
-  btn.addEventListener('click', e => { e.preventDefault(); doLogin(); });
-});
-
-// Enter key on login inputs
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  const loginPage = document.getElementById('page-login');
-  if (!loginPage || loginPage.style.display === 'none') return;
-  const active = document.activeElement;
-  if (active && ['email','password','text'].includes(active.type)) {
-    e.preventDefault(); doLogin();
-  }
-});
+// Login button wiring and Enter-key handling are now managed by
+// supabase-portal.js (DOMContentLoaded). Removed old GAS doLogin() listeners
+// that were causing BUG-02 and BUG-03 (dual login race conditions).
 
 /* ══════════════════════════════════════════════════════════════
    CHAT + ACTIVITY  (demo social feed — keeps UI alive)
