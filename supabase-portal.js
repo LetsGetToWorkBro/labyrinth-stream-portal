@@ -504,20 +504,21 @@ window.updateHeaderProfileSupabase = function updateHeaderProfileSupabase() {
    BOOT  —  override the inline doLogin and wire up on DOMContentLoaded
    ══════════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Override doLogin to use Supabase
-  window.doLogin = window.doSupabaseLogin;
+  // 1. GAS owns login — doLogin() is the authoritative handler
+  // doSupabaseLogin is NOT used for credential checks; Supabase session
+  // is synced AFTER a successful GAS login via syncGasSessionToSupabase.
 
-  // 2. Wire "Sign In" button to Supabase login
+  // 2. Wire "Sign In" button to GAS login
   const signInBtn = document.getElementById('btnSignIn') || document.querySelector('button[onclick*="doLogin"]');
   if (signInBtn) {
     signInBtn.removeAttribute('onclick');
-    signInBtn.addEventListener('click', e => { e.preventDefault(); window.doSupabaseLogin(); });
+    signInBtn.addEventListener('click', e => { e.preventDefault(); window.doLogin(); });
   }
 
   // 3. Wire Enter key on password field
   const passInput = document.getElementById('loginPassword') || document.querySelector('input[type="password"]');
   if (passInput) {
-    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.doSupabaseLogin(); });
+    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.doLogin(); });
   }
 
   // 4. Wire "Request Access" link
