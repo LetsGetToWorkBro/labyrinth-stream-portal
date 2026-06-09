@@ -174,11 +174,6 @@ function _afterLogin() {
   if (typeof applyBeltTheme === 'function') applyBeltTheme(window.SESSION?.belt || 'white');
   if (typeof updateHeaderProfile === 'function') updateHeaderProfile();
 
-  // Show mobile warning if needed
-  if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    _showMobileWarning();
-  }
-
   document.getElementById('page-login').style.display = 'none';
   document.getElementById('app-shell').style.display  = 'flex';
 
@@ -186,40 +181,6 @@ function _afterLogin() {
   if (typeof loadAllData === 'function') loadAllData();
 }
 
-function _showMobileWarning() {
-  if (document.getElementById('mobile-warn-overlay')) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'mobile-warn-overlay';
-  overlay.innerHTML = `
-    <div style="position:fixed;inset:0;z-index:9999;
-                background:linear-gradient(160deg,#0a0c14 0%,#050608 50%,#08060e 100%);
-                display:flex;flex-direction:column;align-items:center;justify-content:center;
-                padding:32px 24px;text-align:center;font-family:inherit;">
-      <div style="font-size:36px;margin-bottom:20px">⚠️</div>
-      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
-                  color:var(--th);margin-bottom:10px;">Heads Up</div>
-      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:10px;letter-spacing:-.02em;">
-        Live Stream Won't Work Here
-      </div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.45);max-width:260px;line-height:1.7;margin-bottom:32px;">
-        Use the Labyrinth BJJ app for the best experience.
-        Live streams and some features won't work on mobile browsers.
-      </div>
-      <a href="https://app.labyrinth.vision"
-         style="display:block;width:100%;max-width:260px;padding:14px;border-radius:12px;
-                background:rgba(var(--th-rgb),.8);color:#fff;text-decoration:none;
-                font-size:14px;font-weight:800;letter-spacing:.02em;margin-bottom:12px;">
-        Take Me to the App
-      </a>
-      <button onclick="document.getElementById('mobile-warn-overlay').remove()"
-              style="background:transparent;border:1px solid rgba(var(--th-rgb),.15);
-                     color:rgba(255,255,255,0.3);font-size:12px;font-weight:600;
-                     cursor:pointer;padding:8px 20px;border-radius:8px;font-family:inherit;">
-        Continue anyway
-      </button>
-    </div>`;
-  document.body.prepend(overlay);
-}
 
 /* ── Sign out ────────────────────────────────────────────────────── */
 window.doSupabaseSignOut = async function doSupabaseSignOut() {
