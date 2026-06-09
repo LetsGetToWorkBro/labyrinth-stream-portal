@@ -269,8 +269,8 @@ body {
 
 /* ── SCHEDULE PAGE ── */
 .schedule-page { padding: 24px; overflow-y: auto; gap: 20px; }
-.schedule-page::-webkit-scrollbar, .recordings-page::-webkit-scrollbar { width: 4px; }
-.schedule-page::-webkit-scrollbar-thumb, .recordings-page::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
+.schedule-page::-webkit-scrollbar { width: 4px; }
+.schedule-page::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
 
 .page-header { margin-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 .page-title { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -.03em; margin-bottom: 4px; }
@@ -322,56 +322,331 @@ body {
 .btn-watch-live { padding: 7px 16px; border-radius: var(--r-sm); border: none; background: rgba(239,68,68,.2); color: #ef4444; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px; }
 .btn-watch-live:hover { background: rgba(239,68,68,.32); }
 
-/* ── RECORDINGS PAGE ── */
-.recordings-page { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; }
-
-.rec-filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-.rec-filter { padding: 7px 16px; border-radius: var(--r-full, 9999px); border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--muted); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all .18s; }
-.rec-filter:hover { background: rgba(255,255,255,.06); color: var(--text); }
-.rec-filter.active { background: rgba(var(--th-rgb),.12); border-color: rgba(var(--th-rgb),.3); color: var(--th); transition: all .8s; }
-
-.rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
-.rec-card { border-radius: var(--r-lg); border: 1px solid var(--border); background: rgba(13,15,22,.7); overflow: hidden; cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s; }
-.rec-card:hover { border-color: rgba(var(--th-rgb),.3); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.4); }
-
-/* List-view toggle */
-.rec-grid.list-view { grid-template-columns: 1fr; gap: 8px; }
-.rec-grid.list-view .rec-card { display: flex; flex-direction: row; min-height: 90px; }
-.rec-grid.list-view .rec-thumb { width: 140px; flex-shrink: 0; border-radius: var(--r-lg) 0 0 var(--r-lg); aspect-ratio: unset; }
-.rec-grid.list-view .rec-info  { padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; }
-.rec-grid.list-view .rec-title { font-size: 15px; }
-.rec-grid.list-view .rec-footer { margin-top: auto; }
-@media (max-width: 768px) {
-  .rec-grid.list-view .rec-thumb { width: 110px; }
+/* ── RECORDINGS PAGE — full reimagine ── */
+.recordings-page {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  height: 100%;
+  background: var(--bg);
 }
 
-.rec-thumb { aspect-ratio: 16/9; position: relative; background: linear-gradient(135deg, #0d0f16, #060810); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.rec-thumb-mat { position: absolute; inset: 0; opacity: .04; background: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(255,255,255,.4) 32px, rgba(255,255,255,.4) 33px); }
-.rec-thumb-icon { opacity: .2; }
-.rec-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.8); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
-.rec-belt-dot { position: absolute; top: 8px; left: 8px; width: 10px; height: 10px; border-radius: 50%; }
-.rec-new-badge { position: absolute; top: 8px; right: 8px; background: rgba(var(--th-rgb),.9); color: #000; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; text-transform: uppercase; letter-spacing: .05em; transition: background .8s; }
+/* LEFT SIDEBAR — date/filter panel */
+.rec-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: rgba(5,6,10,0.6);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 0 20px;
+}
+.rec-sidebar::-webkit-scrollbar { width: 3px; }
+.rec-sidebar::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 3px; }
 
-.rec-info { padding: 14px 16px; }
-.rec-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 5px; line-height: 1.3; }
-.rec-coach { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); margin-bottom: 10px; }
-.rec-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-.rec-date  { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.5); }
-.rec-views { font-size: 12px; font-weight: 600; color: var(--muted); }
-.rec-progress-track { height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; margin-bottom: 10px; }
-.rec-progress-fill  { height: 100%; border-radius: 2px; background: var(--th); transition: background .8s; }
+.rec-sidebar-section { padding: 0 16px; margin-bottom: 24px; }
+.rec-sidebar-label {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--faint); margin-bottom: 10px;
+}
 
-.rec-section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.45); margin-bottom: 14px; margin-top: 4px; }
+/* Month calendar list */
+.rec-month-list { display: flex; flex-direction: column; gap: 2px; }
+.rec-month-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 10px; border: none;
+  background: transparent; color: var(--muted); font-size: 12px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all .15s; width: 100%;
+  text-align: left;
+}
+.rec-month-btn:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.rec-month-btn.active { background: rgba(var(--th-rgb),.1); color: var(--th); font-weight: 700; }
+.rec-month-count {
+  font-size: 10px; font-weight: 700; color: var(--faint);
+  background: rgba(255,255,255,.04); border-radius: 6px; padding: 1px 6px;
+}
+.rec-month-btn.active .rec-month-count { color: rgba(var(--th-rgb),.7); background: rgba(var(--th-rgb),.1); }
 
-/* View toggle buttons */
-.rec-view-toggle { display: flex; gap: 4px; }
-.rec-view-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: all .15s; }
-.rec-view-btn:hover { background: rgba(255,255,255,.06); color: var(--text); }
-.rec-view-btn.active { background: rgba(var(--th-rgb),.12); border-color: rgba(var(--th-rgb),.3); color: var(--th); }
+/* Type filter chips */
+.rec-type-list { display: flex; flex-direction: column; gap: 2px; }
+.rec-type-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 10px; border: none;
+  background: transparent; color: var(--muted); font-size: 12px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: all .15s; width: 100%;
+  text-align: left;
+}
+.rec-type-btn:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.rec-type-btn.active { background: rgba(var(--th-rgb),.1); color: var(--th); font-weight: 700; }
+.rec-type-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
 
-/* Recordings header row */
-.rec-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-.rec-count { font-size: 12px; color: var(--muted); font-weight: 600; }
+/* Search + sort bar */
+.rec-search-bar {
+  padding: 16px 20px 0;
+  display: flex; gap: 10px; align-items: center;
+}
+.rec-search-wrap {
+  flex: 1; position: relative;
+}
+.rec-search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); pointer-events: none;
+}
+.rec-search-input {
+  width: 100%; padding: 10px 14px 10px 36px;
+  border-radius: 12px; border: 1px solid var(--border2);
+  background: rgba(255,255,255,.04); color: var(--text);
+  font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color .2s, background .2s;
+}
+.rec-search-input:focus {
+  border-color: rgba(var(--th-rgb),.4);
+  background: rgba(255,255,255,.06);
+}
+.rec-search-input::placeholder { color: var(--muted); }
+
+.rec-sort-btn {
+  padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.03); color: var(--muted); font-size: 12px;
+  font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap;
+  transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.rec-sort-btn:hover { background: rgba(255,255,255,.06); color: var(--text); }
+
+/* RIGHT CONTENT AREA */
+.rec-content {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+}
+.rec-scroll {
+  flex: 1; overflow-y: auto; padding: 0 20px 32px;
+}
+.rec-scroll::-webkit-scrollbar { width: 4px; }
+.rec-scroll::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
+
+/* HERO / FEATURED card */
+.rec-hero {
+  margin: 20px 0 28px;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  background: var(--faint);
+  aspect-ratio: 16/6;
+  border: 1px solid rgba(var(--th-rgb),.15);
+  transition: border-color .2s;
+}
+.rec-hero:hover { border-color: rgba(var(--th-rgb),.35); }
+.rec-hero img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .4s cubic-bezier(.16,1,.3,1);
+}
+.rec-hero:hover img { transform: scale(1.02); }
+.rec-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(5,6,10,.9) 0%, rgba(5,6,10,.4) 50%, transparent 100%);
+}
+.rec-hero-content {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 28px 32px;
+}
+.rec-hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 10px;
+}
+.rec-hero-title {
+  font-size: 24px; font-weight: 900; color: #fff;
+  letter-spacing: -.03em; line-height: 1.15; margin-bottom: 6px;
+  text-shadow: 0 2px 12px rgba(0,0,0,.6);
+}
+.rec-hero-meta {
+  font-size: 13px; color: rgba(255,255,255,.6); margin-bottom: 16px;
+}
+.rec-hero-play {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 11px 22px; border-radius: 12px; border: none; cursor: pointer;
+  background: rgba(var(--th-rgb),.85); color: #05060a;
+  font-size: 13px; font-weight: 800; font-family: inherit; letter-spacing: .02em;
+  transition: all .2s; backdrop-filter: blur(8px);
+}
+.rec-hero-play:hover { background: rgba(var(--th-rgb),1); transform: scale(1.03); }
+.rec-hero-duration {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+  color: #fff; font-size: 12px; font-weight: 700;
+  padding: 4px 10px; border-radius: 7px;
+}
+
+/* MONTH section headers */
+.rec-month-header {
+  display: flex; align-items: center; gap: 14px;
+  margin: 28px 0 14px;
+}
+.rec-month-title {
+  font-size: 13px; font-weight: 800; color: rgba(255,255,255,.7);
+  text-transform: uppercase; letter-spacing: .1em; white-space: nowrap;
+}
+.rec-month-line {
+  flex: 1; height: 1px; background: var(--border);
+}
+.rec-month-count2 {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  white-space: nowrap;
+}
+
+/* VIDEO CARD GRID */
+.rec-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.rec-card2 {
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: rgba(13,15,22,.8);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .2s cubic-bezier(.16,1,.3,1), border-color .2s, box-shadow .2s;
+  position: relative;
+}
+.rec-card2:hover {
+  border-color: rgba(var(--th-rgb),.3);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(var(--th-rgb),.08);
+}
+
+.rec-card2-thumb {
+  aspect-ratio: 16/9;
+  position: relative;
+  overflow: hidden;
+  background: #0a0c14;
+}
+.rec-card2-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .35s cubic-bezier(.16,1,.3,1);
+}
+.rec-card2:hover .rec-card2-thumb img { transform: scale(1.05); }
+
+.rec-card2-play {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0);
+  transition: background .2s;
+}
+.rec-card2:hover .rec-card2-play { background: rgba(0,0,0,.35); }
+.rec-card2-play svg {
+  opacity: 0; transform: scale(.8);
+  transition: opacity .2s, transform .2s;
+}
+.rec-card2:hover .rec-card2-play svg { opacity: 1; transform: scale(1); }
+
+.rec-card2-dur {
+  position: absolute; bottom: 8px; right: 8px;
+  background: rgba(0,0,0,.82); backdrop-filter: blur(4px);
+  color: #fff; font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 5px; letter-spacing: .02em;
+}
+.rec-card2-new {
+  position: absolute; top: 8px; left: 8px;
+  background: var(--th); color: #000;
+  font-size: 9px; font-weight: 800; padding: 2px 8px;
+  border-radius: 5px; text-transform: uppercase; letter-spacing: .06em;
+}
+
+/* Progress bar on thumb */
+.rec-card2-progress {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: rgba(255,255,255,.15);
+}
+.rec-card2-progress-fill {
+  height: 100%; background: var(--th); transition: background .8s;
+}
+
+/* Card body */
+.rec-card2-body { padding: 12px 14px 14px; }
+.rec-card2-tags { display: flex; gap: 5px; margin-bottom: 7px; flex-wrap: wrap; }
+.rec-card2-tag {
+  font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.tag-gi-v2    { background: rgba(59,130,246,.15); color: #60a5fa; }
+.tag-nogi-v2  { background: rgba(168,85,247,.15);  color: #c084fc; }
+.tag-open-v2  { background: rgba(34,197,94,.15);   color: #4ade80; }
+.tag-comp-v2  { background: rgba(239,68,68,.15);   color: #f87171; }
+.tag-found-v2 { background: rgba(var(--th-rgb),.15); color: var(--th); }
+.tag-kids-v2  { background: rgba(251,191,36,.15);  color: #fbbf24; }
+
+.rec-card2-title {
+  font-size: 14px; font-weight: 800; color: #fff;
+  line-height: 1.3; margin-bottom: 5px;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.rec-card2-coach {
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,.45); margin-bottom: 8px;
+}
+.rec-card2-footer {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rec-card2-date { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.35); }
+.rec-card2-views { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.35); }
+
+/* Empty state */
+.rec-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 80px 24px; text-align: center; color: var(--muted);
+}
+.rec-empty svg { opacity: .15; margin-bottom: 16px; }
+.rec-empty-title { font-size: 15px; font-weight: 700; color: rgba(255,255,255,.3); margin-bottom: 6px; }
+.rec-empty-sub { font-size: 13px; color: var(--muted); }
+
+/* Result count */
+.rec-result-count {
+  font-size: 12px; color: var(--muted); font-weight: 600; padding: 12px 0 0;
+}
+
+/* Mobile sidebar toggle button */
+.rec-filter-toggle {
+  display: none;
+  align-items: center; gap: 8px; padding: 8px 14px;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.03); color: var(--muted);
+  font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+
+/* MOBILE overrides for recordings */
+@media (max-width: 768px) {
+  .recordings-page { flex-direction: column; overflow: visible; height: auto; }
+  .rec-sidebar {
+    width: 100%; border-right: none; border-bottom: 1px solid var(--border);
+    padding: 16px; flex-direction: row; flex-wrap: wrap; gap: 16px;
+    overflow: visible; max-height: none;
+    display: none;
+  }
+  .rec-sidebar.open { display: flex; }
+  .rec-sidebar-section { padding: 0; margin-bottom: 0; min-width: 130px; flex: 1; }
+  .rec-month-list, .rec-type-list { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .rec-month-btn, .rec-type-btn { width: auto; padding: 6px 10px; font-size: 11px; }
+  .rec-filter-toggle { display: flex; }
+  .rec-search-bar { padding: 12px 16px 0; }
+  .rec-content { overflow: visible; }
+  .rec-scroll { overflow: visible; padding: 0 16px 100px; }
+  .rec-hero { aspect-ratio: 16/8; margin: 16px 0 20px; }
+  .rec-hero-title { font-size: 17px; }
+  .rec-hero-content { padding: 20px; }
+  .rec-hero-play { padding: 9px 16px; font-size: 12px; }
+  .rec-grid2 { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .rec-card2-body { padding: 10px 12px 12px; }
+  .rec-card2-title { font-size: 13px; }
+}
 
 /* ── RIGHT SIDEBAR (Chat) ── */
 .sidebar-right { border-left: 1px solid var(--border); background: rgba(5,6,10,0.4); backdrop-filter: blur(12px); display: flex; flex-direction: column; overflow: hidden; }
@@ -545,12 +820,7 @@ body {
   /* ── Schedule page ── */
   .schedule-page { padding: 16px; overflow-y: visible; }
 
-  /* ── Recordings page ── */
-  .recordings-page { padding: 16px; overflow-y: visible; }
-  .rec-grid { grid-template-columns: 1fr !important; }
-  .rec-grid.list-view .rec-thumb { width: 100px; }
-  .rec-grid.list-view .rec-title { font-size: 14px; }
-  .rec-filters { gap: 6px; flex-wrap: wrap; }
+  /* ── Recordings page — mobile handled by rec-sidebar @media above ── */
 
   /* ── Login page — scrollable, vertically centered ── */
   #page-login {
@@ -920,120 +1190,97 @@ body {
 
       <!-- ── RECORDINGS PAGE ── -->
       <div class="page-panel recordings-page" id="panel-recordings">
-        <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-          <div>
-            <div class="page-title">Recordings</div>
-            <div class="page-sub">Class replays and technique library</div>
-          </div>
-          <div class="rec-view-toggle">
-            <button class="rec-view-btn active" id="btnGridView" title="Grid view" onclick="setRecView('grid')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-            <button class="rec-view-btn" id="btnListView" title="List view" onclick="setRecView('list')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
 
-        <div class="rec-filters">
-          <button class="rec-filter active">All</button>
-          <button class="rec-filter">Gi</button>
-          <button class="rec-filter">No-Gi</button>
-          <button class="rec-filter">Competition</button>
-          <button class="rec-filter">Fundamentals</button>
-          <button class="rec-filter">Continue Watching</button>
-        </div>
-
-        <div class="rec-section-label">Continue Watching</div>
-        <div class="rec-grid" style="margin-bottom:24px;">
-          <div class="rec-card">
-            <div class="rec-thumb">
-              <div class="rec-thumb-mat"></div>
-              <svg class="rec-thumb-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="rec-belt-dot" style="background:#a855f7"></span>
-              <span class="rec-duration">42:18</span>
-            </div>
-            <div class="rec-progress-track"><div class="rec-progress-fill" style="width:62%"></div></div>
-            <div class="rec-info">
-              <div class="rec-title">Half Guard — Bottom Sweeps Vol. 3</div>
-              <div class="rec-coach">Prof. Marcus Rodrigues</div>
-              <div class="rec-footer"><span class="rec-date">Apr 22, 2026</span><span class="rec-views">62% watched</span></div>
-            </div>
-          </div>
-          <div class="rec-card">
-            <div class="rec-thumb">
-              <div class="rec-thumb-mat"></div>
-              <svg class="rec-thumb-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="rec-belt-dot" style="background:#3b82f6"></span>
-              <span class="rec-duration">38:05</span>
-            </div>
-            <div class="rec-progress-track"><div class="rec-progress-fill" style="width:25%"></div></div>
-            <div class="rec-info">
-              <div class="rec-title">Berimbolo Entry — No-Gi Series</div>
-              <div class="rec-coach">Coach Dani Torres</div>
-              <div class="rec-footer"><span class="rec-date">Apr 20, 2026</span><span class="rec-views">25% watched</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="rec-section-label">Recent Uploads</div>
-        <div class="rec-grid">
-          <div class="rec-card">
-            <div class="rec-thumb">
-              <div class="rec-thumb-mat"></div>
-              <svg class="rec-thumb-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="rec-belt-dot" style="background:#a855f7"></span>
-              <span class="rec-new-badge" style="background:var(--th)">New</span>
-              <span class="rec-duration">54:12</span>
-            </div>
-            <div class="rec-info">
-              <div class="rec-title">Fundamentals — Guard Passing Series</div>
-              <div class="rec-coach">Prof. Marcus Rodrigues</div>
-              <div class="rec-footer"><span class="rec-date">Apr 26, 2026</span><span class="rec-views">12 views</span></div>
-            </div>
-          </div>
-          <div class="rec-card">
-            <div class="rec-thumb">
-              <div class="rec-thumb-mat"></div>
-              <svg class="rec-thumb-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="rec-belt-dot" style="background:#ea580c"></span>
-              <span class="rec-new-badge" style="background:var(--th)">New</span>
-              <span class="rec-duration">47:33</span>
-            </div>
-            <div class="rec-info">
-              <div class="rec-title">Leg Lock System — Part 4</div>
-              <div class="rec-coach">Prof. Marcus Rodrigues</div>
-              <div class="rec-footer"><span class="rec-date">Apr 25, 2026</span><span class="rec-views">34 views</span></div>
-            </div>
-          </div>
-          <div class="rec-card">
-            <div class="rec-thumb">
-              <div class="rec-thumb-mat"></div>
-              <svg class="rec-thumb-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="rec-belt-dot" style="background:#3b82f6"></span>
-              <span class="rec-duration">1:02:44</span>
-            </div>
-            <div class="rec-info">
-              <div class="rec-title">No-Gi Advanced — Open Mat Highlight</div>
-              <div class="rec-coach">Coach Dani Torres</div>
-              <div class="rec-footer"><span class="rec-date">Apr 24, 2026</span><span class="rec-views">89 views</span></div>
-            </div>
-          </div>
-          <div class="rec-card">
-            <div class="rec-thumb">
-              <div class="rec-thumb-mat"></div>
-              <svg class="rec-thumb-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="rec-belt-dot" style="background:#a855f7"></span>
-              <span class="rec-duration">39:58</span>
-            </div>
-            <div class="rec-info">
-              <div class="rec-title">Butterfly Guard — Sweeps & Attacks</div>
-              <div class="rec-coach">Prof. Marcus Rodrigues</div>
-              <div class="rec-footer"><span class="rec-date">Apr 23, 2026</span><span class="rec-views">156 views</span></div>
-            </div>
-          </div>
-        </div>
+  <!-- LEFT SIDEBAR -->
+  <aside class="rec-sidebar" id="recSidebar">
+    <div class="rec-sidebar-section">
+      <div class="rec-sidebar-label">Browse by Month</div>
+      <div class="rec-month-list" id="recMonthList">
+        <!-- Populated by JS -->
+        <button class="rec-month-btn active" data-month="all">
+          All Time <span class="rec-month-count" id="recTotalCount">—</span>
+        </button>
       </div>
+    </div>
+    <div class="rec-sidebar-section">
+      <div class="rec-sidebar-label">Class Type</div>
+      <div class="rec-type-list">
+        <button class="rec-type-btn active" data-type="all">
+          <span class="rec-type-dot" style="background:var(--th)"></span>All Classes
+        </button>
+        <button class="rec-type-btn" data-type="gi">
+          <span class="rec-type-dot" style="background:#60a5fa"></span>Gi
+        </button>
+        <button class="rec-type-btn" data-type="nogi">
+          <span class="rec-type-dot" style="background:#c084fc"></span>No-Gi
+        </button>
+        <button class="rec-type-btn" data-type="competition">
+          <span class="rec-type-dot" style="background:#f87171"></span>Competition
+        </button>
+        <button class="rec-type-btn" data-type="fundamentals">
+          <span class="rec-type-dot" style="background:var(--th)"></span>Fundamentals
+        </button>
+        <button class="rec-type-btn" data-type="open">
+          <span class="rec-type-dot" style="background:#4ade80"></span>Open Mat
+        </button>
+        <button class="rec-type-btn" data-type="kids">
+          <span class="rec-type-dot" style="background:#fbbf24"></span>Kids
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT CONTENT -->
+  <div class="rec-content">
+
+    <!-- Search + filter toggle -->
+    <div class="rec-search-bar">
+      <button class="rec-filter-toggle" id="recFilterToggle" onclick="toggleRecSidebar()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filter
+      </button>
+      <div class="rec-search-wrap">
+        <svg class="rec-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="rec-search-input" id="recSearch" type="text" placeholder="Search recordings…" oninput="filterRecordings()">
+      </div>
+      <button class="rec-sort-btn" id="recSortBtn" onclick="cycleRecSort()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        <span id="recSortLabel">Newest</span>
+      </button>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="rec-scroll" id="recScroll">
+
+      <!-- Hero featured card (most recent) -->
+      <div class="rec-hero" id="recHero" style="display:none;" onclick="">
+        <img id="recHeroImg" src="" alt="">
+        <div class="rec-hero-overlay"></div>
+        <div class="rec-hero-content">
+          <div class="rec-hero-tag" id="recHeroTag"></div>
+          <div class="rec-hero-title" id="recHeroTitle">Loading…</div>
+          <div class="rec-hero-meta" id="recHeroMeta"></div>
+          <button class="rec-hero-play">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Play Recording
+          </button>
+        </div>
+        <div class="rec-hero-duration" id="recHeroDur"></div>
+      </div>
+
+      <!-- Grouped by month -->
+      <div id="recGroups"></div>
+
+      <!-- Empty state -->
+      <div class="rec-empty" id="recEmpty" style="display:none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1"><rect x="2" y="2" width="20" height="20" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        <div class="rec-empty-title">No recordings found</div>
+        <div class="rec-empty-sub" id="recEmptySub">Recordings appear here after each live class.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
     </main>
 
     <!-- RIGHT SIDEBAR (Chat) -->
@@ -1516,95 +1763,244 @@ async function checkIn(btn, className, classTime) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   RECORDINGS
+   RECORDINGS — reimagined
    ══════════════════════════════════════════════════════════════ */
+
+let _allRecs = [];
+let _recFilterMonth = 'all';
+let _recFilterType  = 'all';
+let _recSearch = '';
+let _recSort = 'newest';
+
 async function loadRecordings() {
   const res  = await gas('getStreamArchive');
   const recs = res.archives || res.recordings || res.items || (Array.isArray(res) ? res : []);
-  renderRecordings(Array.isArray(recs) ? recs : []);
+  _allRecs = Array.isArray(recs) ? recs : [];
+  _buildMonthList(_allRecs);
+  renderRecordings();
 }
 
-function renderRecordings(recs) {
-  const grid = document.querySelector('.rec-grid');
-  if (!grid) return;
-
-  if (!recs.length) {
-    grid.innerHTML = `<div style="grid-column:1/-1;padding:64px;text-align:center;color:var(--muted);font-size:14px;">
-      No recordings yet — they'll appear here after each live class.
-    </div>`;
-    return;
-  }
-
-  grid.innerHTML = recs.map(r => {
-    const vid   = r.videoId || r.youtubeId || '';
-    const title = esc(r.title || r.className || 'Class Recording');
-    const coach = esc(r.coach || r.instructor || '');
-    const date  = esc(r.date  || r.recordedAt || r.archivedAt || '');
-    const views = r.views || 0;
-    const dur   = r.durationSeconds ? fmtDur(r.durationSeconds) : '';
-    const isNew = r.isNew || false;
-    const belt  = (r.beltTag || r.level || '').toLowerCase();
-    const bc    = beltColor(belt);
-    const thumb = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
-
-    return `
-      <div class="rec-card" onclick="openRecording('${vid}')" style="cursor:pointer;">
-        <div class="rec-thumb" style="position:relative;overflow:hidden;border-radius:var(--r-md) var(--r-md) 0 0;aspect-ratio:16/9;background:var(--faint);">
-          ${thumb ? `<img src="${thumb}" alt="${title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">` : ''}
-          ${isNew ? `<span style="position:absolute;top:8px;left:8px;background:var(--th);color:#05060a;font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;">NEW</span>` : ''}
-          ${dur   ? `<span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.75);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;">${dur}</span>` : ''}
-          <div class="rec-play-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;background:rgba(0,0,0,.3);">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </div>
-        </div>
-        <div class="rec-info" style="padding:12px 14px;">
-          <div class="rec-title" style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:4px;">${title}</div>
-          <div class="rec-meta" style="font-size:11px;color:var(--muted);">${[coach, date, views > 0 ? views + ' views' : ''].filter(Boolean).join(' · ')}</div>
-          ${bc ? `<div style="margin-top:6px;"><span class="class-tag" style="background:${bc.bg};color:${bc.text};">${belt}</span></div>` : ''}
-        </div>
-      </div>`;
-  }).join('');
-
-  grid.querySelectorAll('.rec-card').forEach(card => {
-    const ov = card.querySelector('.rec-play-overlay');
-    if (!ov) return;
-    card.addEventListener('mouseenter', () => ov.style.opacity = '1');
-    card.addEventListener('mouseleave', () => ov.style.opacity = '0');
+function _buildMonthList(recs) {
+  const monthMap = {};
+  recs.forEach(r => {
+    const raw = r.date || r.recordedAt || r.archivedAt || '';
+    const d = raw ? new Date(raw) : null;
+    const key = d && !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown';
+    monthMap[key] = (monthMap[key] || 0) + 1;
   });
+
+  const el = document.getElementById('recMonthList');
+  if (!el) return;
+
+  const totalBtn = `<button class="rec-month-btn ${_recFilterMonth === 'all' ? 'active' : ''}" data-month="all" onclick="setRecMonth('all')">All Time <span class="rec-month-count">${recs.length}</span></button>`;
+  const monthBtns = Object.entries(monthMap)
+    .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+    .map(([m, cnt]) => `<button class="rec-month-btn ${_recFilterMonth === m ? 'active' : ''}" data-month="${m}" onclick="setRecMonth('${m}')">${m} <span class="rec-month-count">${cnt}</span></button>`)
+    .join('');
+  el.innerHTML = totalBtn + monthBtns;
 }
 
-/* ── Grid / List view toggle ── */
-function setRecView(mode) {
-  const grids = document.querySelectorAll('.rec-grid');
-  grids.forEach(g => {
-    g.classList.toggle('list-view', mode === 'list');
-  });
-  document.getElementById('btnGridView')?.classList.toggle('active', mode === 'grid');
-  document.getElementById('btnListView')?.classList.toggle('active', mode === 'list');
-  localStorage.setItem('recView', mode);
+function setRecMonth(month) {
+  _recFilterMonth = month;
+  document.querySelectorAll('.rec-month-btn').forEach(b => b.classList.toggle('active', b.dataset.month === month));
+  renderRecordings();
 }
 
-// Restore preferred view on load
+function setRecType(type) {
+  _recFilterType = type;
+  document.querySelectorAll('.rec-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  renderRecordings();
+}
+
+// Wire type buttons
 document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('recView');
-  if (saved === 'list') setRecView('list');
+  document.querySelectorAll('.rec-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => setRecType(btn.dataset.type));
+  });
 });
 
-function openRecording(videoId) {
-  if (!videoId) return;
-  const container = document.querySelector('.video-container');
-  if (!container) return;
-  container.querySelector('iframe.yt-player')?.remove();
-  const iframe = document.createElement('iframe');
-  iframe.className = 'yt-player';
-  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0`;
-  iframe.allow = 'autoplay; encrypted-media; fullscreen';
-  iframe.frameBorder = '0';
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:2;border-radius:inherit;';
-  const bg = container.querySelector('.video-bg');
-  if (bg) { bg.style.display = 'none'; bg.after(iframe); } else container.appendChild(iframe);
-  switchPage('live');
+function filterRecordings() {
+  _recSearch = (document.getElementById('recSearch')?.value || '').toLowerCase().trim();
+  renderRecordings();
 }
+
+const _sortCycles = ['newest', 'oldest', 'most viewed'];
+function cycleRecSort() {
+  const idx = _sortCycles.indexOf(_recSort);
+  _recSort = _sortCycles[(idx + 1) % _sortCycles.length];
+  const label = document.getElementById('recSortLabel');
+  if (label) label.textContent = _recSort.charAt(0).toUpperCase() + _recSort.slice(1);
+  renderRecordings();
+}
+
+function toggleRecSidebar() {
+  const sb = document.getElementById('recSidebar');
+  if (sb) sb.classList.toggle('open');
+}
+
+function renderRecordings() {
+  let recs = [..._allRecs];
+
+  // Filter: month
+  if (_recFilterMonth !== 'all') {
+    recs = recs.filter(r => {
+      const d = new Date(r.date || r.recordedAt || r.archivedAt || '');
+      return !isNaN(d) && d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) === _recFilterMonth;
+    });
+  }
+
+  // Filter: type
+  if (_recFilterType !== 'all') {
+    recs = recs.filter(r => {
+      const t = ((r.type || r.classType || r.className || r.title || '').toLowerCase());
+      if (_recFilterType === 'gi') return t.includes('gi') && !t.includes('no-gi') && !t.includes('nogi');
+      if (_recFilterType === 'nogi') return t.includes('no-gi') || t.includes('nogi');
+      if (_recFilterType === 'competition') return t.includes('comp');
+      if (_recFilterType === 'fundamentals') return t.includes('fund') || t.includes('basic') || t.includes('beginner');
+      if (_recFilterType === 'open') return t.includes('open');
+      if (_recFilterType === 'kids') return t.includes('kid') || t.includes('junior');
+      return true;
+    });
+  }
+
+  // Filter: search
+  if (_recSearch) {
+    recs = recs.filter(r => {
+      const haystack = [r.title, r.className, r.coach, r.instructor, r.date].join(' ').toLowerCase();
+      return haystack.includes(_recSearch);
+    });
+  }
+
+  // Sort
+  recs.sort((a, b) => {
+    const da = new Date(a.date || a.recordedAt || 0);
+    const db = new Date(b.date || b.recordedAt || 0);
+    if (_recSort === 'oldest') return da - db;
+    if (_recSort === 'most viewed') return (b.views || 0) - (a.views || 0);
+    return db - da; // newest
+  });
+
+  const hero   = document.getElementById('recHero');
+  const groups = document.getElementById('recGroups');
+  const empty  = document.getElementById('recEmpty');
+  const emptySub = document.getElementById('recEmptySub');
+
+  if (!recs.length) {
+    if (hero) hero.style.display = 'none';
+    if (groups) groups.innerHTML = '';
+    if (empty) empty.style.display = 'flex';
+    if (emptySub) emptySub.textContent = _recSearch ? `No recordings matching "${_recSearch}".` : 'No recordings in this category yet.';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  // Hero: first (most recent) card
+  const h = recs[0];
+  if (hero && h) {
+    const hVid = h.videoId || h.youtubeId || '';
+    const hThumb = hVid ? `https://img.youtube.com/vi/${hVid}/maxresdefault.jpg` : '';
+    const hTitle = esc(h.title || h.className || 'Class Recording');
+    const hCoach = esc(h.coach || h.instructor || '');
+    const hDate  = h.date || h.recordedAt || '';
+    const hDur   = h.durationSeconds ? fmtDur(h.durationSeconds) : '';
+    const hType  = _recCardType(h);
+
+    document.getElementById('recHeroImg').src = hThumb;
+    document.getElementById('recHeroImg').alt = hTitle;
+    document.getElementById('recHeroTitle').textContent = hTitle;
+    document.getElementById('recHeroMeta').textContent = [hCoach, hDate ? _fmtDate(hDate) : ''].filter(Boolean).join(' · ');
+    document.getElementById('recHeroDur').textContent = hDur;
+    document.getElementById('recHeroDur').style.display = hDur ? '' : 'none';
+    const tagEl = document.getElementById('recHeroTag');
+    if (tagEl && hType) { tagEl.style.cssText = `background:${hType.bg};color:${hType.text};display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;`; tagEl.textContent = hType.label; }
+    hero.onclick = () => openRecording(hVid);
+    hero.style.display = hThumb ? '' : 'none';
+  }
+
+  // Group remaining by month
+  const rest = recs.slice(hero && h && (h.videoId || h.youtubeId) ? 1 : 0);
+  const monthGroups = {};
+  rest.forEach(r => {
+    const d = new Date(r.date || r.recordedAt || r.archivedAt || '');
+    const key = !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Archive';
+    if (!monthGroups[key]) monthGroups[key] = [];
+    monthGroups[key].push(r);
+  });
+
+  if (groups) {
+    groups.innerHTML = Object.entries(monthGroups).map(([month, items]) => `
+      <div class="rec-month-header">
+        <span class="rec-month-title">${month}</span>
+        <span class="rec-month-line"></span>
+        <span class="rec-month-count2">${items.length} recording${items.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="rec-grid2">
+        ${items.map(r => _recCardHTML(r)).join('')}
+      </div>
+    `).join('');
+
+    // Hover play overlay
+    groups.querySelectorAll('.rec-card2').forEach(card => {
+      const vid = card.dataset.vid;
+      if (vid) card.addEventListener('click', () => openRecording(vid));
+    });
+  }
+}
+
+function _fmtDate(raw) {
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function _recCardType(r) {
+  const t = ((r.type || r.classType || r.className || r.title || '') + ' ' + (r.level || r.category || '')).toLowerCase();
+  if (t.includes('no-gi') || t.includes('nogi')) return { label: 'No-Gi', bg: 'rgba(168,85,247,.2)', text: '#c084fc' };
+  if (t.includes('comp')) return { label: 'Competition', bg: 'rgba(239,68,68,.2)', text: '#f87171' };
+  if (t.includes('kid') || t.includes('junior')) return { label: 'Kids', bg: 'rgba(251,191,36,.2)', text: '#fbbf24' };
+  if (t.includes('open')) return { label: 'Open Mat', bg: 'rgba(34,197,94,.2)', text: '#4ade80' };
+  if (t.includes('fund') || t.includes('basic') || t.includes('beginner')) return { label: 'Fundamentals', bg: 'rgba(201,168,76,.2)', text: '#c9a84c' };
+  if (t.includes('gi')) return { label: 'Gi', bg: 'rgba(59,130,246,.2)', text: '#60a5fa' };
+  return null;
+}
+
+function _recCardHTML(r) {
+  const vid   = esc(r.videoId || r.youtubeId || '');
+  const title = esc(r.title || r.className || 'Class Recording');
+  const coach = esc(r.coach || r.instructor || '');
+  const date  = _fmtDate(r.date || r.recordedAt || r.archivedAt || '');
+  const views = r.views || 0;
+  const dur   = r.durationSeconds ? fmtDur(r.durationSeconds) : '';
+  const isNew = r.isNew || false;
+  const progress = r.watchProgress || 0; // 0-100
+  const thumb = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+  const type  = _recCardType(r);
+
+  return `
+    <div class="rec-card2" data-vid="${vid}">
+      <div class="rec-card2-thumb">
+        ${thumb ? `<img src="${thumb}" alt="${title}" loading="lazy">` : `<div style="width:100%;height:100%;background:#0a0c14;display:flex;align-items:center;justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`}
+        <div class="rec-card2-play">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="white" filter="drop-shadow(0 2px 8px rgba(0,0,0,.6))"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        ${isNew ? `<span class="rec-card2-new">New</span>` : ''}
+        ${dur ? `<span class="rec-card2-dur">${dur}</span>` : ''}
+        ${progress > 0 ? `<div class="rec-card2-progress"><div class="rec-card2-progress-fill" style="width:${progress}%"></div></div>` : ''}
+      </div>
+      <div class="rec-card2-body">
+        ${type ? `<div class="rec-card2-tags"><span class="rec-card2-tag" style="background:${type.bg};color:${type.text};">${type.label}</span></div>` : ''}
+        <div class="rec-card2-title">${title}</div>
+        ${coach ? `<div class="rec-card2-coach">${coach}</div>` : ''}
+        <div class="rec-card2-footer">
+          <span class="rec-card2-date">${date}</span>
+          ${views > 0 ? `<span class="rec-card2-views">${views.toLocaleString()} views</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+// Keep setRecView as a no-op for backward compat
+function setRecView() {}
 
 /* ══════════════════════════════════════════════════════════════
    HEADER PROFILE UPDATE
@@ -1727,12 +2123,7 @@ document.querySelector('.week-today')?.addEventListener('click', () => {
   weekOffset = 0; filteredDay = null; loadSchedule();
 });
 
-document.querySelectorAll('.rec-filter').forEach(f => {
-  f.addEventListener('click', () => {
-    document.querySelectorAll('.rec-filter').forEach(x => x.classList.remove('active'));
-    f.classList.add('active');
-  });
-});
+// rec-filter click handler removed (replaced by new recordings UI)
 
 document.querySelectorAll('.chat-tab').forEach(t => {
   t.addEventListener('click', () => {
