@@ -1161,6 +1161,7 @@ body {
                 <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),.7);margin-bottom:6px;">Next Scheduled Stream</div>
                 <div style="font-size:16px;font-weight:800;color:#fff;" id="nextStreamName">—</div>
                 <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;" id="nextStreamTime">—</div>
+                <div id="nextStreamCountdown" style="margin-top:10px;font-size:28px;font-weight:900;color:var(--th);letter-spacing:.02em;font-variant-numeric:tabular-nums;">—</div>
               </div>
               <button onclick="switchPage('recordings')" style="margin-top:20px;padding:11px 28px;border-radius:12px;border:1px solid rgba(var(--th-rgb),.3);background:rgba(var(--th-rgb),.1);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;letter-spacing:.02em;">
                 Browse Recordings
@@ -1736,6 +1737,51 @@ function _updateNextStreamCard(classes) {
     card.style.display = 'block';
   } else {
     card.style.display = 'none';
+  }
+
+  // Start live ticking countdown inside the offline card
+  const countdownEl = document.getElementById('nextStreamCountdown');
+  if (next && countdownEl) {
+    if (window._liveCountdownInterval) clearInterval(window._liveCountdownInterval);
+    function tickLive() {
+      const nowMs = Date.now();
+      const classes = window.scheduleData || [];
+      const DAYS2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const cstNow2 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      // Find target datetime for next.name on its next occurrence
+      let targetMs = null;
+      for (let off = 0; off < 7 && !targetMs; off++) {
+        const dayIdx = (cstNow2.getDay() + off) % 7;
+        const dayName = DAYS2[dayIdx];
+        const dayCls = classes.filter(c => String(c.day||c.dayOfWeek||'').trim().toLowerCase()===dayName.toLowerCase());
+        for (const cls of dayCls) {
+          const tStr = cls.startTime || cls.time || '';
+          if (!tStr) continue;
+          const s = String(tStr).trim();
+          const m12 = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+          let h, mn;
+          if (m12) { h=parseInt(m12[1]); mn=parseInt(m12[2]); if(/PM/i.test(m12[3])&&h!==12)h+=12; if(/AM/i.test(m12[3])&&h===12)h=0; }
+          else { const m24=s.match(/^(\d{1,2}):(\d{2})$/); if(m24){h=parseInt(m24[1]);mn=parseInt(m24[2]);}else continue; }
+          const t = new Date(cstNow2); t.setDate(cstNow2.getDate()+off); t.setHours(h,mn,0,0);
+          const diff = t - nowMs;
+          if (diff > 0) { targetMs = t.getTime(); break; }
+        }
+      }
+      if (!targetMs) { countdownEl.textContent = ''; return; }
+      const totalSec = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
+      const dd = Math.floor(totalSec / 86400);
+      const hh = Math.floor((totalSec % 86400) / 3600);
+      const mm = Math.floor((totalSec % 3600) / 60);
+      const ss = totalSec % 60;
+      const pad = n => String(n).padStart(2,'0');
+      if (dd > 0)      countdownEl.textContent = `${dd}d ${pad(hh)}h ${pad(mm)}m`;
+      else if (hh > 0) countdownEl.textContent = `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+      else             countdownEl.textContent = `${pad(mm)}:${pad(ss)}`;
+    }
+    tickLive();
+    window._liveCountdownInterval = setInterval(tickLive, 1000);
+  } else if (countdownEl) {
+    countdownEl.textContent = '';
   }
 }
 
