@@ -2048,9 +2048,17 @@ function _recStartTime(r) {
   return totalMin > 0 ? new Date(dArch.getTime() - totalMin * 60000) : dArch;
 }
 
+function _roundTo15(d) {
+  if (!d || isNaN(d)) return d;
+  const ms = d.getTime();
+  const q  = 15 * 60 * 1000; // 15 min in ms
+  return new Date(Math.round(ms / q) * q);
+}
+
 function _fmtTime(d) {
   if (!d || isNaN(d)) return '';
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const r = _roundTo15(d);
+  return r.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function _recCardType(r) {
