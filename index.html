@@ -169,12 +169,15 @@ body {
 }
 .nav-logo-name { font-size: 15px; font-weight: 900; letter-spacing: -.02em; color: #fff; }
 .live-badge {
-  display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px;
+  display: none; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px;
   background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3);
   font-size: 11px; font-weight: 800; color: #ef4444; text-transform: uppercase; letter-spacing: .08em;
 }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; animation: pulse 1.5s ease-in-out infinite; }
+.live-badge.is-live { display: flex; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; }
+.live-badge.is-live .live-dot { animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+@keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
 .viewer-count { font-size: 12px; font-weight: 600; color: var(--muted); }
 
 .nav-right { display: flex; align-items: center; gap: 12px; }
@@ -206,7 +209,7 @@ body {
   border-left: 2px solid transparent; transition: all .18s;
 }
 .sidebar-nav-item:hover { background: rgba(255,255,255,.03); color: var(--text); }
-.sidebar-nav-item.active { color: var(--th); background: rgba(var(--th-rgb),.08); border-left-color: var(--th); }
+.sidebar-nav-item.active { color: var(--th); background: rgba(var(--th-rgb),.1); border-left-color: var(--th); font-weight: 700; }
 .sidebar-nav-item svg { opacity: .7; flex-shrink: 0; }
 .sidebar-nav-item.active svg { opacity: 1; }
 
@@ -268,9 +271,9 @@ body {
 .schedule-page::-webkit-scrollbar, .recordings-page::-webkit-scrollbar { width: 4px; }
 .schedule-page::-webkit-scrollbar-thumb, .recordings-page::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
 
-.page-header { margin-bottom: 24px; }
+.page-header { margin-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 .page-title { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -.03em; margin-bottom: 4px; }
-.page-sub   { font-size: 13px; color: var(--muted); }
+.page-sub   { font-size: 13px; color: rgba(255,255,255,.45); }
 
 .week-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .week-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: all .18s; }
@@ -319,33 +322,55 @@ body {
 .btn-watch-live:hover { background: rgba(239,68,68,.32); }
 
 /* ── RECORDINGS PAGE ── */
-.recordings-page { padding: 24px; overflow-y: auto; }
+.recordings-page { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; }
+
 .rec-filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 .rec-filter { padding: 7px 16px; border-radius: var(--r-full, 9999px); border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--muted); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all .18s; }
 .rec-filter:hover { background: rgba(255,255,255,.06); color: var(--text); }
 .rec-filter.active { background: rgba(var(--th-rgb),.12); border-color: rgba(var(--th-rgb),.3); color: var(--th); transition: all .8s; }
 
-.rec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 24px; }
-.rec-card { border-radius: var(--r-lg); border: 1px solid var(--border); background: rgba(13,15,22,.7); overflow: hidden; cursor: pointer; transition: transform .2s; }
-.rec-card:hover { border-color: rgba(var(--th-rgb),.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.rec-card { border-radius: var(--r-lg); border: 1px solid var(--border); background: rgba(13,15,22,.7); overflow: hidden; cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s; }
+.rec-card:hover { border-color: rgba(var(--th-rgb),.3); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.4); }
 
-.rec-thumb { aspect-ratio: 16/9; position: relative; background: linear-gradient(135deg, #0d0f16, #060810); display: flex; align-items: center; justify-content: center; }
+/* List-view toggle */
+.rec-grid.list-view { grid-template-columns: 1fr; gap: 8px; }
+.rec-grid.list-view .rec-card { display: flex; flex-direction: row; min-height: 90px; }
+.rec-grid.list-view .rec-thumb { width: 140px; flex-shrink: 0; border-radius: var(--r-lg) 0 0 var(--r-lg); aspect-ratio: unset; }
+.rec-grid.list-view .rec-info  { padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; }
+.rec-grid.list-view .rec-title { font-size: 15px; }
+.rec-grid.list-view .rec-footer { margin-top: auto; }
+@media (max-width: 768px) {
+  .rec-grid.list-view .rec-thumb { width: 110px; }
+}
+
+.rec-thumb { aspect-ratio: 16/9; position: relative; background: linear-gradient(135deg, #0d0f16, #060810); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .rec-thumb-mat { position: absolute; inset: 0; opacity: .04; background: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(255,255,255,.4) 32px, rgba(255,255,255,.4) 33px); }
 .rec-thumb-icon { opacity: .2; }
-.rec-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.75); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+.rec-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,.8); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
 .rec-belt-dot { position: absolute; top: 8px; left: 8px; width: 10px; height: 10px; border-radius: 50%; }
-.rec-new-badge { position: absolute; top: 8px; right: 8px; background: rgba(var(--th-rgb),.8); color: #fff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; text-transform: uppercase; letter-spacing: .05em; transition: background .8s; }
+.rec-new-badge { position: absolute; top: 8px; right: 8px; background: rgba(var(--th-rgb),.9); color: #000; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 5px; text-transform: uppercase; letter-spacing: .05em; transition: background .8s; }
 
-.rec-info { padding: 12px 14px; }
-.rec-title { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 4px; line-height: 1.3; }
-.rec-coach { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-.rec-footer { display: flex; justify-content: space-between; align-items: center; }
-.rec-date  { font-size: 10px; font-weight: 600; color: var(--faint); }
-.rec-views { font-size: 10px; font-weight: 600; color: var(--muted); }
-.rec-progress-track { height: 2px; background: rgba(255,255,255,.08); border-radius: 1px; margin-bottom: 8px; }
-.rec-progress-fill  { height: 100%; border-radius: 1px; background: var(--th); transition: background .8s; }
+.rec-info { padding: 14px 16px; }
+.rec-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 5px; line-height: 1.3; }
+.rec-coach { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55); margin-bottom: 10px; }
+.rec-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rec-date  { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.5); }
+.rec-views { font-size: 12px; font-weight: 600; color: var(--muted); }
+.rec-progress-track { height: 3px; background: rgba(255,255,255,.08); border-radius: 2px; margin-bottom: 10px; }
+.rec-progress-fill  { height: 100%; border-radius: 2px; background: var(--th); transition: background .8s; }
 
-.rec-section-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 12px; }
+.rec-section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.45); margin-bottom: 14px; margin-top: 4px; }
+
+/* View toggle buttons */
+.rec-view-toggle { display: flex; gap: 4px; }
+.rec-view-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: all .15s; }
+.rec-view-btn:hover { background: rgba(255,255,255,.06); color: var(--text); }
+.rec-view-btn.active { background: rgba(var(--th-rgb),.12); border-color: rgba(var(--th-rgb),.3); color: var(--th); }
+
+/* Recordings header row */
+.rec-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.rec-count { font-size: 12px; color: var(--muted); font-weight: 600; }
 
 /* ── RIGHT SIDEBAR (Chat) ── */
 .sidebar-right { border-left: 1px solid var(--border); background: rgba(5,6,10,0.4); backdrop-filter: blur(12px); display: flex; flex-direction: column; overflow: hidden; }
@@ -446,6 +471,8 @@ body {
   .rec-grid {
     grid-template-columns: 1fr !important;
   }
+  .rec-grid.list-view .rec-thumb { width: 100px; }
+  .rec-grid.list-view .rec-title { font-size: 14px; }
   .rec-filters { gap: 6px; flex-wrap: wrap; }
 
   /* ── Login page ── */
@@ -521,10 +548,20 @@ body {
   transition: color .15s;
   -webkit-tap-highlight-color: transparent;
   padding: 8px 4px;
+  position: relative;
 }
 .mob-nav-btn svg { opacity: .6; transition: opacity .15s; }
 .mob-nav-btn.active { color: var(--th); }
 .mob-nav-btn.active svg { opacity: 1; }
+.mob-nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%; transform: translateX(-50%);
+  width: 20px; height: 2px;
+  border-radius: 2px;
+  background: var(--th);
+}
 .mob-nav-live-dot {
   width: 5px; height: 5px; border-radius: 50%;
   background: #ef4444;
@@ -617,7 +654,7 @@ body {
         <span class="nav-logo-name">Labyrinth</span>
       </div>
       <div class="live-badge"><div class="live-dot"></div>Live</div>
-      <span class="viewer-count">x watching</span>
+      <span class="viewer-count" style="display:none;">x watching</span>
     </div>
     <div class="nav-right">
       <button class="nav-btn">
@@ -674,11 +711,25 @@ body {
       <!-- ── LIVE PAGE ── -->
       <div class="page-panel active" id="panel-live">
         <div class="video-container">
-          <div class="video-bg">
+          <div class="video-bg" id="streamOfflineCard">
             <div class="video-mat-lines"></div>
             <div class="video-center-circle"></div>
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-            <span style="font-size:13px;color:rgba(255,255,255,.15);font-weight:600;">Stream loading…</span>
+            <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:24px;">
+              <div style="width:64px;height:64px;border-radius:20px;border:1px solid rgba(var(--th-rgb),.2);background:rgba(var(--th-rgb),.07);display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),0.6)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2"/></svg>
+              </div>
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),0.7);">No Live Stream</div>
+              <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;" id="offlineTitle">No class streaming right now</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.4);line-height:1.6;max-width:320px;" id="offlineSubtitle">Check back during a scheduled class or browse recordings below.</div>
+              <div id="nextStreamCard" style="margin-top:16px;padding:14px 20px;border-radius:14px;background:rgba(var(--th-rgb),.08);border:1px solid rgba(var(--th-rgb),.18);min-width:240px;display:none;">
+                <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),.7);margin-bottom:6px;">Next Scheduled Stream</div>
+                <div style="font-size:16px;font-weight:800;color:#fff;" id="nextStreamName">—</div>
+                <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;" id="nextStreamTime">—</div>
+              </div>
+              <button onclick="switchPage('recordings')" style="margin-top:20px;padding:11px 28px;border-radius:12px;border:1px solid rgba(var(--th-rgb),.3);background:rgba(var(--th-rgb),.1);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;letter-spacing:.02em;">
+                Browse Recordings
+              </button>
+            </div>
           </div>
           <div class="video-top-bar">
             <div>
@@ -788,9 +839,19 @@ body {
 
       <!-- ── RECORDINGS PAGE ── -->
       <div class="page-panel recordings-page" id="panel-recordings">
-        <div class="page-header">
-          <div class="page-title">Recordings</div>
-          <div class="page-sub">Class replays and technique library</div>
+        <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="page-title">Recordings</div>
+            <div class="page-sub">Class replays and technique library</div>
+          </div>
+          <div class="rec-view-toggle">
+            <button class="rec-view-btn active" id="btnGridView" title="Grid view" onclick="setRecView('grid')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
+            <button class="rec-view-btn" id="btnListView" title="List view" onclick="setRecView('list')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+          </div>
         </div>
 
         <div class="rec-filters">
@@ -960,6 +1021,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwybO9_NBFjSYmpDWVjM0Tl
 /* ── IN-MEMORY STATE ─────────────────────────────────────────── */
 let SESSION      = null;
 let scheduleData = [];
+window.scheduleData = scheduleData;  // exposed for _updateNextStreamCard
 let filteredDay  = null;
 let streamTimer  = null;
 let weekOffset   = 0;
@@ -1123,9 +1185,100 @@ function applyStreamData(data) {
     document.querySelectorAll('.class-card').forEach(c => c.classList.remove('live-now'));
   }
 
-  // Nav live dot
+  // Nav live badge — only show when actually live
+  const liveBadge = document.querySelector('.live-badge');
+  if (liveBadge) liveBadge.classList.toggle('is-live', isLive);
+  const viewerCountEl = document.querySelector('.viewer-count');
+  if (viewerCountEl) viewerCountEl.style.display = isLive && viewers > 0 ? '' : 'none';
+
+  // Nav live dot — only flash/show red when actually live
   const dot = document.querySelector('.nav-live-dot');
-  if (dot) dot.style.display = isLive ? 'block' : 'none';
+  const mobDot = document.getElementById('mobLiveDot');
+  if (dot) {
+    dot.style.display = 'block';
+    dot.classList.toggle('is-live', isLive);
+  }
+  if (mobDot) {
+    mobDot.style.display = isLive ? 'block' : 'none';
+  }
+
+  // Mobile bottom nav live indicator
+  const mobLiveBtn = document.querySelector('.mob-nav-btn[data-page="live"]');
+  if (mobLiveBtn) {
+    let livePill = mobLiveBtn.querySelector('.mob-live-pill');
+    if (isLive && !livePill) {
+      livePill = document.createElement('span');
+      livePill.className = 'mob-live-pill';
+      livePill.textContent = 'LIVE';
+      livePill.style.cssText = 'position:absolute;top:6px;right:6px;background:#ef4444;color:#fff;font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;letter-spacing:.04em;animation:livePulse 1.5s ease-in-out infinite;';
+      mobLiveBtn.appendChild(livePill);
+    } else if (!isLive && livePill) {
+      livePill.remove();
+    }
+  }
+
+  // Update offline card
+  const offlineCard = document.getElementById('streamOfflineCard');
+  if (offlineCard) {
+    offlineCard.style.display = isLive ? 'none' : '';
+  }
+
+  // Populate next stream info from schedule when offline
+  if (!isLive && window.scheduleData && window.scheduleData.length > 0) {
+    _updateNextStreamCard(window.scheduleData);
+  }
+}
+
+function _updateNextStreamCard(classes) {
+  const card = document.getElementById('nextStreamCard');
+  const nameEl = document.getElementById('nextStreamName');
+  const timeEl = document.getElementById('nextStreamTime');
+  if (!card || !nameEl || !timeEl) return;
+
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const now = new Date();
+  const cstNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  const todayIdx = cstNow.getDay();
+  const nowMins = cstNow.getHours() * 60 + cstNow.getMinutes();
+
+  function parseTimeMins(t) {
+    if (!t) return null;
+    if (typeof t === 'number' && t > 0 && t < 1) return Math.round(t * 24 * 60);
+    const s = String(t).trim();
+    const m12 = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (m12) { let h = parseInt(m12[1]); const mn = parseInt(m12[2]); if (/PM/i.test(m12[3]) && h!==12) h+=12; if (/AM/i.test(m12[3]) && h===12) h=0; return h*60+mn; }
+    const m24 = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (m24) return parseInt(m24[1])*60+parseInt(m24[2]);
+    return null;
+  }
+
+  function minsToLabel(m) {
+    const h = Math.floor(m/60)%24, mn = m%60, ap = h<12?'AM':'PM', h12 = h%12||12;
+    return `${h12}:${String(mn).padStart(2,'0')} ${ap} CST`;
+  }
+
+  let next = null;
+  for (let offset = 0; offset < 7 && !next; offset++) {
+    const dayIdx = (todayIdx + offset) % 7;
+    const dayName = DAYS[dayIdx];
+    const dayClasses = classes.filter(c => String(c.day || c.dayOfWeek || '').trim().toLowerCase() === dayName.toLowerCase());
+    for (const cls of dayClasses) {
+      const mins = parseTimeMins(cls.startTime || cls.time);
+      if (mins === null) continue;
+      if (offset === 0 && mins <= nowMins) continue;
+      const label = offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : dayName;
+      next = { label, name: cls.name || cls.className || cls.title || 'Class', time: minsToLabel(mins) };
+      break;
+    }
+  }
+
+  if (next) {
+    nameEl.textContent = next.name;
+    timeEl.textContent = `${next.label} at ${next.time}`;
+    card.style.display = 'block';
+  } else {
+    card.style.display = 'none';
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1135,6 +1288,7 @@ async function loadSchedule() {
   const res = await gas('getScheduleClasses');
   const raw = res.classes || res.schedule || res.data || (Array.isArray(res) ? res : []);
   scheduleData = Array.isArray(raw) ? raw : [];
+  window.scheduleData = scheduleData;
   updateWeekLabel();
   buildDayChips(scheduleData);
   renderSchedule(scheduleData, filteredDay);
@@ -1311,6 +1465,23 @@ function renderRecordings(recs) {
   });
 }
 
+/* ── Grid / List view toggle ── */
+function setRecView(mode) {
+  const grids = document.querySelectorAll('.rec-grid');
+  grids.forEach(g => {
+    g.classList.toggle('list-view', mode === 'list');
+  });
+  document.getElementById('btnGridView')?.classList.toggle('active', mode === 'grid');
+  document.getElementById('btnListView')?.classList.toggle('active', mode === 'list');
+  localStorage.setItem('recView', mode);
+}
+
+// Restore preferred view on load
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('recView');
+  if (saved === 'list') setRecView('list');
+});
+
 function openRecording(videoId) {
   if (!videoId) return;
   const container = document.querySelector('.video-container');
@@ -1406,8 +1577,16 @@ function showXPToast(txt) {
 function switchPage(pageId) {
   document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.mob-nav-btn').forEach(i => i.classList.remove('active'));
   document.getElementById('panel-' + pageId)?.classList.add('active');
   document.querySelector(`.sidebar-nav-item[data-page="${pageId}"]`)?.classList.add('active');
+  document.querySelector(`.mob-nav-btn[data-page="${pageId}"]`)?.classList.add('active');
+  // Update page title in top nav on mobile
+  const navLogo = document.querySelector('.nav-logo-name');
+  if (navLogo && window.innerWidth <= 768) {
+    const labels = { live: 'Live', schedule: 'Schedule', recordings: 'Recordings' };
+    navLogo.textContent = labels[pageId] || 'Labyrinth';
+  }
   const isLive = pageId === 'live';
   const chatLive  = document.getElementById('chatLiveContent');
   const chatOff   = document.getElementById('chatOffContent');
