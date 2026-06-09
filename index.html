@@ -507,6 +507,41 @@ body {
   margin-bottom: 8px;
 }
 
+/* DAY SUB-HEADER */
+.rec-day-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 10px 2px;
+}
+.rec-day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--th);
+  flex-shrink: 0;
+  opacity: .65;
+}
+.rec-day-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,.45);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+.rec-day-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,.06);
+}
+.rec-day-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,.25);
+  white-space: nowrap;
+}
+
 .rec-card2 {
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
@@ -1917,29 +1952,54 @@ function renderRecordings() {
     hero.style.display = hThumb ? '' : 'none';
   }
 
-  // Group remaining by month
+  // Group remaining by month → day
   const rest = recs.slice(hero && h && (h.videoId || h.youtubeId) ? 1 : 0);
   const monthGroups = {};
+  const monthOrder = [];
   rest.forEach(r => {
     const d = new Date(r.date || r.recordedAt || r.archivedAt || '');
-    const key = !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Archive';
-    if (!monthGroups[key]) monthGroups[key] = [];
-    monthGroups[key].push(r);
+    const mKey = !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Archive';
+    const dKey = !isNaN(d) ? d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Unknown Date';
+    const dSort = !isNaN(d) ? d.getTime() : 0;
+    if (!monthGroups[mKey]) { monthGroups[mKey] = { days: {}, dayOrder: [], total: 0 }; monthOrder.push(mKey); }
+    if (!monthGroups[mKey].days[dKey]) { monthGroups[mKey].days[dKey] = { items: [], sort: dSort }; monthGroups[mKey].dayOrder.push(dKey); }
+    monthGroups[mKey].days[dKey].items.push(r);
+    monthGroups[mKey].total++;
   });
 
   if (groups) {
-    groups.innerHTML = Object.entries(monthGroups).map(([month, items]) => `
-      <div class="rec-month-header">
-        <span class="rec-month-title">${month}</span>
-        <span class="rec-month-line"></span>
-        <span class="rec-month-count2">${items.length} recording${items.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="rec-grid2">
-        ${items.map(r => _recCardHTML(r)).join('')}
-      </div>
-    `).join('');
+    groups.innerHTML = monthOrder.map(month => {
+      const mg = monthGroups[month];
+      // Sort days newest-first (or oldest based on _recSort)
+      const sortedDays = mg.dayOrder.slice().sort((a, b) =>
+        _recSort === 'oldest' ? mg.days[a].sort - mg.days[b].sort : mg.days[b].sort - mg.days[a].sort
+      );
+      const dayBlocks = sortedDays.map(day => {
+        const items = mg.days[day].items;
+        const n = items.length;
+        // Strip year from display label: "Tuesday, June 3, 2026" → "Tuesday, June 3"
+        const dayLabel = day.replace(/,\s*\d{4}$/, '');
+        return `
+          <div class="rec-day-header">
+            <span class="rec-day-dot"></span>
+            <span class="rec-day-label">${dayLabel}</span>
+            <span class="rec-day-line"></span>
+            <span class="rec-day-count">${n} class${n !== 1 ? 'es' : ''}</span>
+          </div>
+          <div class="rec-grid2">
+            ${items.map(r => _recCardHTML(r)).join('')}
+          </div>`;
+      }).join('');
+      return `
+        <div class="rec-month-header">
+          <span class="rec-month-title">${month}</span>
+          <span class="rec-month-line"></span>
+          <span class="rec-month-count2">${mg.total} recording${mg.total !== 1 ? 's' : ''}</span>
+        </div>
+        ${dayBlocks}`;
+    }).join('');
 
-    // Hover play overlay
+    // Click handlers
     groups.querySelectorAll('.rec-card2').forEach(card => {
       const vid = card.dataset.vid;
       if (vid) card.addEventListener('click', () => openRecording(vid));
