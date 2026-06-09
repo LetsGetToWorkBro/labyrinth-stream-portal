@@ -549,6 +549,65 @@ body {
   letter-spacing: .02em;
 }
 
+/* NEXT STREAM COUNTDOWN BANNER */
+.rec-countdown-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(201,168,76,.07);
+  border: 1px solid rgba(201,168,76,.2);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 0 0 20px;
+}
+.rec-countdown-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201,168,76,.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--th);
+}
+.rec-countdown-body {
+  flex: 1;
+  min-width: 0;
+}
+.rec-countdown-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--th);
+  opacity: .75;
+  margin-bottom: 2px;
+}
+.rec-countdown-class {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rec-countdown-time {
+  font-size: 11px;
+  color: rgba(255,255,255,.45);
+  margin-top: 1px;
+}
+.rec-countdown-timer {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--th);
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 80px;
+}
+
 .rec-card2 {
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
@@ -1148,7 +1207,7 @@ body {
       <div class="page-panel schedule-page" id="panel-schedule">
         <div class="page-header">
           <div class="page-title">Class Schedule</div>
-          <div class="page-sub">Labyrinth BJJ — April 2026</div>
+          <div class="page-sub" id="scheduleMonthSub">Labyrinth BJJ</div>
         </div>
         <div class="week-nav">
           <button class="week-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -1278,6 +1337,19 @@ body {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
         <span id="recSortLabel">Newest</span>
       </button>
+    </div>
+
+    <!-- Next stream countdown -->
+    <div class="rec-countdown-bar" id="recCountdownBar" style="display:none;">
+      <div class="rec-countdown-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="rec-countdown-body">
+        <div class="rec-countdown-label">Next Live Class</div>
+        <div class="rec-countdown-class" id="recCountdownClass">—</div>
+        <div class="rec-countdown-time" id="recCountdownTime"></div>
+      </div>
+      <div class="rec-countdown-timer" id="recCountdownTimer">—</div>
     </div>
 
     <!-- Scrollable content -->
@@ -1691,6 +1763,12 @@ function updateWeekLabel() {
   const sat = new Date(sun);   sat.setDate(sun.getDate() + 6);
   const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   label.textContent = `${fmt(sun)} – ${fmt(sat)}, ${sat.getFullYear()}`;
+  // Update page-sub with current month
+  const sub = document.getElementById('scheduleMonthSub');
+  if (sub) {
+    const monthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    sub.textContent = `Labyrinth BJJ — ${monthName}`;
+  }
 }
 
 function buildDayChips(classes) {
@@ -1794,6 +1872,74 @@ async function checkIn(btn, className, classTime) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   RECORDINGS — NEXT CLASS COUNTDOWN
+   ══════════════════════════════════════════════════════════════ */
+let _countdownInterval = null;
+
+function _startCountdown() {
+  if (_countdownInterval) clearInterval(_countdownInterval);
+  _tickCountdown();
+  _countdownInterval = setInterval(_tickCountdown, 1000);
+}
+
+function _tickCountdown() {
+  const bar     = document.getElementById('recCountdownBar');
+  const elClass = document.getElementById('recCountdownClass');
+  const elTime  = document.getElementById('recCountdownTime');
+  const elTimer = document.getElementById('recCountdownTimer');
+  if (!bar || !elTimer) return;
+
+  // Build a target datetime from schedule data (weekday + time string)
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const classes = window.scheduleData || [];
+  if (!classes.length) { bar.style.display = 'none'; return; }
+
+  // Find next upcoming class across the coming 7 days
+  let best = null, bestMs = Infinity;
+  for (let d = 0; d < 7; d++) {
+    const candidate = new Date(now);
+    candidate.setDate(now.getDate() + d);
+    candidate.setSeconds(0); candidate.setMilliseconds(0);
+    const dayName = days[candidate.getDay()];
+    classes.filter(c => (c.day || c.dayOfWeek || '') === dayName).forEach(c => {
+      const tStr = c.startTime || c.time || '';
+      if (!tStr) return;
+      const [timePart, ampm] = [tStr.replace(/(am|pm)/i,'').trim(), tStr.match(/am|pm/i)?.[0]?.toLowerCase()];
+      const [hStr, mStr] = timePart.split(':');
+      let h = parseInt(hStr); const m = parseInt(mStr || '0');
+      if (ampm === 'pm' && h !== 12) h += 12;
+      if (ampm === 'am' && h === 12) h = 0;
+      const target = new Date(candidate);
+      target.setHours(h, m, 0, 0);
+      const diff = target - now;
+      if (diff > 0 && diff < bestMs) { bestMs = diff; best = { cls: c, target }; }
+    });
+    if (best) break;
+  }
+
+  if (!best) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  const name = best.cls.name || best.cls.title || best.cls.className || 'Class';
+  const dayLabel = days[best.target.getDay()];
+  const timeLabel = best.target.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  elClass.textContent = name;
+  elTime.textContent  = `${dayLabel} · ${timeLabel}`;
+
+  // Format countdown: Xd Xh Xm Xs or Xh Xm Xs
+  const totalSec = Math.floor(bestMs / 1000);
+  const dd = Math.floor(totalSec / 86400);
+  const hh = Math.floor((totalSec % 86400) / 3600);
+  const mm = Math.floor((totalSec % 3600) / 60);
+  const ss = totalSec % 60;
+  const pad = n => String(n).padStart(2,'0');
+  if (dd > 0)      elTimer.textContent = `${dd}d ${pad(hh)}h ${pad(mm)}m`;
+  else if (hh > 0) elTimer.textContent = `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+  else             elTimer.textContent = `${pad(mm)}:${pad(ss)}`;
+}
+
+/* ══════════════════════════════════════════════════════════════
    RECORDINGS — reimagined
    ══════════════════════════════════════════════════════════════ */
 
@@ -1809,6 +1955,7 @@ async function loadRecordings() {
   _allRecs = Array.isArray(recs) ? recs : [];
   _buildMonthList(_allRecs);
   renderRecordings();
+  _startCountdown();
 }
 
 function _buildMonthList(recs) {
@@ -1948,12 +2095,12 @@ function renderRecordings() {
     hero.style.display = hThumb ? '' : 'none';
   }
 
-  // Group remaining by month → day
+  // Group remaining by month → day — use derived start time (not r.date which is UTC midnight)
   const rest = recs.slice(hero && h && (h.videoId || h.youtubeId) ? 1 : 0);
   const monthGroups = {};
   const monthOrder = [];
   rest.forEach(r => {
-    const d = new Date(r.date || r.recordedAt || r.archivedAt || '');
+    const d = _recStartTime(r) || new Date(r.date || r.recordedAt || r.archivedAt || '');
     const mKey = !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Archive';
     const dKey = !isNaN(d) ? d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Unknown Date';
     const dSort = !isNaN(d) ? d.getTime() : 0;
@@ -2078,7 +2225,9 @@ function _recCardHTML(r) {
   const durStr   = r.duration || '';
   const isNew    = r.isNew || false;
   const progress = r.watchProgress || 0;
-  const thumb    = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+  // Use sddefault for better mid-stream content shot; fall back to mqdefault if missing
+  const thumbSd  = vid ? `https://img.youtube.com/vi/${vid}/sddefault.jpg` : '';
+  const thumbMq  = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
   const type     = _recCardType(r);
   const startD   = _recStartTime(r);
   const timeStr  = _fmtTime(startD);
@@ -2088,7 +2237,7 @@ function _recCardHTML(r) {
   return `
     <div class="rec-card2" data-vid="${vid}">
       <div class="rec-card2-thumb">
-        ${thumb ? `<img src="${thumb}" alt="${title}" loading="lazy">` : `<div style="width:100%;height:100%;background:#0a0c14;display:flex;align-items:center;justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`}
+        ${thumbSd ? `<img src="${thumbSd}" alt="${title}" loading="lazy" onerror="this.src='${thumbMq}'">` : `<div style="width:100%;height:100%;background:#0a0c14;display:flex;align-items:center;justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`}
         <div class="rec-card2-play">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="white" filter="drop-shadow(0 2px 8px rgba(0,0,0,.6))"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </div>
