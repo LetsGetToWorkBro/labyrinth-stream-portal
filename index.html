@@ -541,6 +541,13 @@ body {
   color: rgba(255,255,255,.25);
   white-space: nowrap;
 }
+.rec-day-timerange {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(201,168,76,.55);
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
 
 .rec-card2 {
   border-radius: var(--r-lg);
@@ -632,6 +639,7 @@ body {
   display: flex; align-items: center; justify-content: space-between;
 }
 .rec-card2-date { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.35); }
+.rec-card2-time { font-size: 12px; font-weight: 700; color: var(--th); opacity: .8; }
 .rec-card2-views { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.35); }
 
 /* Empty state */
@@ -1975,14 +1983,24 @@ function renderRecordings() {
         _recSort === 'oldest' ? mg.days[a].sort - mg.days[b].sort : mg.days[b].sort - mg.days[a].sort
       );
       const dayBlocks = sortedDays.map(day => {
-        const items = mg.days[day].items;
+        // Sort items within each day chronologically (earliest start time first)
+        const items = mg.days[day].items.slice().sort((a, b) => {
+          const ta = (_recStartTime(a) || new Date(0)).getTime();
+          const tb = (_recStartTime(b) || new Date(0)).getTime();
+          return ta - tb;
+        });
         const n = items.length;
         // Strip year from display label: "Tuesday, June 3, 2026" → "Tuesday, June 3"
         const dayLabel = day.replace(/,\s*\d{4}$/, '');
+        // First and last class times for the day range
+        const firstTime = _fmtTime(_recStartTime(items[0]));
+        const lastTime  = n > 1 ? _fmtTime(_recStartTime(items[n - 1])) : '';
+        const timeRange = firstTime && lastTime ? `${firstTime} – ${lastTime}` : (firstTime || '');
         return `
           <div class="rec-day-header">
             <span class="rec-day-dot"></span>
             <span class="rec-day-label">${dayLabel}</span>
+            ${timeRange ? `<span class="rec-day-timerange">${timeRange}</span>` : ''}
             <span class="rec-day-line"></span>
             <span class="rec-day-count">${n} class${n !== 1 ? 'es' : ''}</span>
           </div>
@@ -2013,28 +2031,63 @@ function _fmtDate(raw) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Derive class start time from archivedAt - duration string ("66 min", "1 hr 20 min")
+function _recStartTime(r) {
+  const arch = r.archivedAt || r.recordedAt || r.date || '';
+  if (!arch) return null;
+  const dArch = new Date(arch);
+  if (isNaN(dArch)) return null;
+  const durStr = r.duration || '';
+  let totalMin = 0;
+  const hrMatch  = durStr.match(/(\d+)\s*hr/);
+  const minMatch = durStr.match(/(\d+)\s*min/);
+  if (hrMatch)  totalMin += parseInt(hrMatch[1])  * 60;
+  if (minMatch) totalMin += parseInt(minMatch[1]);
+  // Fall back to durationSeconds if present
+  if (totalMin === 0 && r.durationSeconds) totalMin = Math.round(r.durationSeconds / 60);
+  return totalMin > 0 ? new Date(dArch.getTime() - totalMin * 60000) : dArch;
+}
+
+function _fmtTime(d) {
+  if (!d || isNaN(d)) return '';
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
 function _recCardType(r) {
-  const t = ((r.type || r.classType || r.className || r.title || '') + ' ' + (r.level || r.category || '')).toLowerCase();
-  if (t.includes('no-gi') || t.includes('nogi')) return { label: 'No-Gi', bg: 'rgba(168,85,247,.2)', text: '#c084fc' };
+  const title = (r.title || r.className || '').toLowerCase();
+  const cat   = (r.category || r.type || r.classType || '').toLowerCase();
+  const level = (r.level || '').toLowerCase();
+  const t = title + ' ' + cat + ' ' + level;
+
+  // Saturday ~12pm Kids Grappling slot = Advanced
+  const startD = _recStartTime(r);
+  const isSatNoon = startD && startD.getDay() === 6 && startD.getHours() >= 11 && startD.getHours() <= 13;
+  if ((title.includes('kids grappling') || title.includes('adult & teens')) && isSatNoon)
+    return { label: 'Kids Advanced', bg: 'rgba(251,140,0,.2)', text: '#fb8c00' };
+
+  if (t.includes('no-gi') || t.includes('nogi') || t.includes('wrestling')) return { label: 'No-Gi', bg: 'rgba(168,85,247,.2)', text: '#c084fc' };
   if (t.includes('comp')) return { label: 'Competition', bg: 'rgba(239,68,68,.2)', text: '#f87171' };
   if (t.includes('kid') || t.includes('junior')) return { label: 'Kids', bg: 'rgba(251,191,36,.2)', text: '#fbbf24' };
   if (t.includes('open')) return { label: 'Open Mat', bg: 'rgba(34,197,94,.2)', text: '#4ade80' };
   if (t.includes('fund') || t.includes('basic') || t.includes('beginner')) return { label: 'Fundamentals', bg: 'rgba(201,168,76,.2)', text: '#c9a84c' };
-  if (t.includes('gi')) return { label: 'Gi', bg: 'rgba(59,130,246,.2)', text: '#60a5fa' };
+  if (t.includes('gi') || cat === 'gi') return { label: 'Gi', bg: 'rgba(59,130,246,.2)', text: '#60a5fa' };
   return null;
 }
 
 function _recCardHTML(r) {
-  const vid   = esc(r.videoId || r.youtubeId || '');
-  const title = esc(r.title || r.className || 'Class Recording');
-  const coach = esc(r.coach || r.instructor || '');
-  const date  = _fmtDate(r.date || r.recordedAt || r.archivedAt || '');
-  const views = r.views || 0;
-  const dur   = r.durationSeconds ? fmtDur(r.durationSeconds) : '';
-  const isNew = r.isNew || false;
-  const progress = r.watchProgress || 0; // 0-100
-  const thumb = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
-  const type  = _recCardType(r);
+  const vid      = esc(r.videoId || r.youtubeId || '');
+  const title    = esc(r.title || r.className || 'Class Recording');
+  const coach    = esc(r.coach || r.instructor || '');
+  const views    = r.views || 0;
+  const durStr   = r.duration || '';
+  const isNew    = r.isNew || false;
+  const progress = r.watchProgress || 0;
+  const thumb    = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+  const type     = _recCardType(r);
+  const startD   = _recStartTime(r);
+  const timeStr  = _fmtTime(startD);
+  // Duration display: prefer "duration" string from GAS, fall back to durationSeconds
+  const durLabel = durStr || (r.durationSeconds ? fmtDur(r.durationSeconds) : '');
 
   return `
     <div class="rec-card2" data-vid="${vid}">
@@ -2044,7 +2097,7 @@ function _recCardHTML(r) {
           <svg width="40" height="40" viewBox="0 0 24 24" fill="white" filter="drop-shadow(0 2px 8px rgba(0,0,0,.6))"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </div>
         ${isNew ? `<span class="rec-card2-new">New</span>` : ''}
-        ${dur ? `<span class="rec-card2-dur">${dur}</span>` : ''}
+        ${durLabel ? `<span class="rec-card2-dur">${durLabel}</span>` : ''}
         ${progress > 0 ? `<div class="rec-card2-progress"><div class="rec-card2-progress-fill" style="width:${progress}%"></div></div>` : ''}
       </div>
       <div class="rec-card2-body">
@@ -2052,7 +2105,7 @@ function _recCardHTML(r) {
         <div class="rec-card2-title">${title}</div>
         ${coach ? `<div class="rec-card2-coach">${coach}</div>` : ''}
         <div class="rec-card2-footer">
-          <span class="rec-card2-date">${date}</span>
+          ${timeStr ? `<span class="rec-card2-time">${timeStr}</span>` : ''}
           ${views > 0 ? `<span class="rec-card2-views">${views.toLocaleString()} views</span>` : ''}
         </div>
       </div>
