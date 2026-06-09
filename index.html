@@ -63,6 +63,7 @@ body {
   position: fixed; inset: 0; z-index: 100;
   display: flex; align-items: center; justify-content: center;
   background: #05060a;
+  overflow-y: auto;
 }
 #page-login::before {
   content: ''; position: absolute; inset: 0;
@@ -417,97 +418,178 @@ body {
 
   /* ── Base overrides ── */
   html, body { overflow: auto; height: auto; }
-  #app-shell { position: relative; inset: auto; flex-direction: column; min-height: 100dvh; }
+
+  /* App shell: normal flow, full page */
+  #app-shell {
+    position: relative;
+    inset: auto;
+    flex-direction: column;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
 
   /* ── Top nav ── */
-  .top-nav { padding: 10px 14px; }
+  .top-nav { padding: 10px 14px; height: 48px; }
   .nav-logo-name { font-size: 14px; }
-  .nav-btn { display: none; } /* hide desktop nav buttons */
+  .nav-btn { display: none; }
+  .nav-avatar { width: 30px; height: 30px; font-size: 11px; }
 
-  /* ── Main layout: stack vertically, hide sidebars ── */
+  /* ── Main layout: single column, no sidebars ── */
   .main-layout {
     display: flex;
     flex-direction: column;
     grid-template-columns: unset;
     overflow: visible;
     flex: 1;
+    /* bottom nav clearance */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   }
   .sidebar-left  { display: none !important; }
   .sidebar-right { display: none !important; }
 
-  /* ── Center / content area ── */
+  /* ── Center area: normal flow ── */
   .center-area {
     width: 100%;
     overflow: visible;
-    position: relative;
-    flex: 1;
+    position: static;
+    flex: none;
   }
+
+  /* All panels flow naturally — no absolute positioning on mobile */
   .page-panel {
-    position: relative;
+    position: static;
     inset: auto;
     overflow: visible;
     flex-direction: column;
+    display: none;
+  }
+  .page-panel.active {
+    display: flex;
+    flex-direction: column;
   }
 
-  /* ── Live page / video ── */
-  .video-container {
+  /* ── LIVE PAGE — mobile layout ── */
+
+  /* When live: video gets 16:9 box */
+  .video-container.is-live-mobile {
     aspect-ratio: 16/9;
     flex: none;
     width: 100%;
-    overflow: hidden;
+    height: auto;
+    min-height: unset;
   }
-  .video-container iframe,
+
+  /* When offline: container is just a block wrapper, no flex centering */
+  .video-container {
+    display: block;
+    flex: none;
+    width: 100%;
+    height: auto !important;
+    min-height: unset !important;
+    aspect-ratio: unset !important;
+    background: transparent;
+    overflow: visible !important;
+  }
+
+  /* video-bg (offline card): normal flow, full-width */
+  .video-bg {
+    position: static !important;
+    inset: auto !important;
+    width: 100%;
+    height: auto;
+    min-height: unset;
+    padding: 36px 20px 28px;
+    background: linear-gradient(160deg, #0a0c14 0%, #050608 50%, #08060e 100%);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .video-mat-lines { display: none; }
+  .video-center-circle { display: none; }
+
+  /* Hide desktop overlay bars on mobile — they overlap the offline card */
+  .video-top-bar   { display: none !important; }
+  .video-bottom-bar { display: none !important; }
+  .activity-strip  { display: none; }
+
+  /* iframe / video players: fixed 16:9 */
+  .video-container iframe.yt-player,
   .video-container video {
+    position: static !important;
     width: 100% !important;
-    height: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16/9;
+    display: block;
   }
-  .activity-strip { display: none; }
+
+  /* Stream title below video on mobile */
+  .mobile-stream-info {
+    display: block;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,6,10,.8);
+  }
+  .mobile-stream-info .stream-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  .mobile-stream-info .stream-meta {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+  }
 
   /* ── Schedule page ── */
   .schedule-page { padding: 16px; overflow-y: visible; }
 
   /* ── Recordings page ── */
   .recordings-page { padding: 16px; overflow-y: visible; }
-  .rec-grid {
-    grid-template-columns: 1fr !important;
-  }
+  .rec-grid { grid-template-columns: 1fr !important; }
   .rec-grid.list-view .rec-thumb { width: 100px; }
   .rec-grid.list-view .rec-title { font-size: 14px; }
   .rec-filters { gap: 6px; flex-wrap: wrap; }
 
-  /* ── Login page ── */
+  /* ── Login page — scrollable, vertically centered ── */
   #page-login {
-    padding: 24px 16px;
-    min-height: 100dvh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    display: block;
+    padding: 0;
+    -webkit-overflow-scrolling: touch;
   }
-  .login-card { width: 100%; max-width: 400px; padding: 28px 20px; }
-
-  /* ── Bottom nav (mobile only) ── */
-  .mobile-bottom-nav {
-    display: flex !important;
+  .login-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 28px 20px 32px;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    flex: none;
   }
+  /* Hide the belt theme demo picker on mobile — saves ~60px */
+  .belt-picker { display: none !important; }
+  /* Tighten up logo margin */
+  .login-logo { margin-bottom: 20px; }
+  .login-heading { font-size: 20px; margin-bottom: 4px; }
+  .login-sub { margin-bottom: 20px; }
+  .btn-biometric { margin-bottom: 16px; }
+  .btn-secondary { margin-bottom: 16px; }
 
-  /* ── Add bottom padding so content doesn't hide behind bottom nav ── */
-  .main-layout { padding-bottom: 64px; }
-
-  /* ── Class cards: stack on narrow screens ── */
+  /* ── Class cards: wrap cleanly ── */
   .class-card { flex-wrap: wrap; gap: 10px; }
   .class-actions { align-items: flex-start; width: 100%; flex-direction: row; justify-content: space-between; }
   .class-time-block { flex-shrink: 0; }
 
   /* ── Page header spacing ── */
-  .page-header { padding: 16px 16px 12px; }
+  .page-header { padding: 16px 16px 12px; margin-bottom: 16px; }
+  .page-title { font-size: 20px; }
 
-  /* ── Chat: show as a collapsible panel below video on mobile ── */
-  .sidebar-right-mobile {
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--border);
-    background: rgba(5,6,10,0.5);
-  }
+  /* ── Bottom nav ── */
+  .mobile-bottom-nav { display: flex !important; }
 
 }
 
@@ -576,9 +658,6 @@ body {
   .mobile-bottom-nav {
     height: calc(60px + env(safe-area-inset-bottom));
   }
-  @media (max-width: 768px) {
-    .main-layout { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-  }
 }
 
 </style>
@@ -634,9 +713,6 @@ body {
     <button class="btn-secondary" id="btnSignIn" onclick="doSupabaseLogin()">Sign In</button>
     <p style="text-align:center;margin:10px 0 0;font-size:12px;color:var(--muted);">Not a member? <a id="btnRequestAccess" href="#" style="color:var(--th);font-weight:700;text-decoration:none;" onclick="event.preventDefault();showRequestAccess()">Request Access</a></p>
 
-    <!-- Global App Theme Selector (demo tool) -->
-    <div style="font-size:10px;text-transform:uppercase;color:var(--muted);margin-top:20px;font-weight:700;">Global App Belt Theme</div>
-    
   </div>
 </div>
 
@@ -756,6 +832,11 @@ body {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
             </button>
           </div>
+        </div>
+        <!-- Mobile-only stream info shown below video when live -->
+        <div class="mobile-stream-info" id="mobileStreamInfo" style="display:none;">
+          <div class="stream-title" id="mobileStreamTitle">Live Class</div>
+          <div class="stream-meta" id="mobileStreamMeta"></div>
         </div>
         <div class="activity-strip">
           <div class="activity-scroll" id="activityScroll"></div>
@@ -1133,11 +1214,16 @@ function applyStreamData(data) {
   const location = data.location   || 'Labyrinth BJJ';
   const viewers  = data.viewerCount || data.viewers || 0;
 
-  // Title / meta text
-  const titleEl = document.querySelector('.stream-title');
-  const metaEl  = document.querySelector('.stream-meta');
+  // Title / meta text — only update the overlay bars, not the offline card text
+  const titleEl = document.querySelector('.video-top-bar .stream-title');
+  const metaEl  = document.querySelector('.video-top-bar .stream-meta');
   if (titleEl) titleEl.textContent = title;
   if (metaEl)  metaEl.textContent  = [coach, location].filter(Boolean).join(' · ');
+  // Show/hide top bar based on live state
+  const topBar = document.querySelector('.video-top-bar');
+  const botBar = document.querySelector('.video-bottom-bar');
+  if (topBar) topBar.style.display = isLive ? '' : 'none';
+  if (botBar) botBar.style.display = isLive ? '' : 'none';
 
   // Viewer count
   const countEl = document.querySelector('.lv-count');
@@ -1221,6 +1307,28 @@ function applyStreamData(data) {
   const offlineCard = document.getElementById('streamOfflineCard');
   if (offlineCard) {
     offlineCard.style.display = isLive ? 'none' : '';
+  }
+
+  // Mobile layout adjustments
+  const container2 = document.querySelector('.video-container');
+  const mobileInfo = document.getElementById('mobileStreamInfo');
+  const mobileTitle = document.getElementById('mobileStreamTitle');
+  const mobileMeta  = document.getElementById('mobileStreamMeta');
+  if (container2) {
+    if (isLive) {
+      container2.style.aspectRatio = '16/9';
+      container2.style.overflow = 'hidden';
+    } else {
+      container2.style.aspectRatio = '';
+      container2.style.overflow = 'visible';
+    }
+  }
+  if (mobileInfo) {
+    mobileInfo.style.display = isLive ? 'block' : 'none';
+    if (isLive) {
+      if (mobileTitle) mobileTitle.textContent = title;
+      if (mobileMeta)  mobileMeta.textContent  = [coach, location].filter(Boolean).join(' · ');
+    }
   }
 
   // Populate next stream info from schedule when offline
