@@ -1340,6 +1340,18 @@ body {
       </button>
     </div>
 
+<!-- ── VIDEO MODAL ── -->
+<div id="recModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:center;padding:16px;" onclick="_closeRecModal(event)">
+  <div style="position:relative;width:100%;max-width:900px;">
+    <button onclick="closeRecModal()" style="position:absolute;top:-44px;right:0;background:none;border:none;color:rgba(255,255,255,.6);font-size:28px;cursor:pointer;line-height:1;padding:4px 8px;">&times;</button>
+    <div style="position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:12px;overflow:hidden;">
+      <iframe id="recModalIframe" src="" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen frameborder="0"
+        style="position:absolute;inset:0;width:100%;height:100%;border:none;"></iframe>
+    </div>
+    <div id="recModalMeta" style="margin-top:12px;padding:0 4px;"></div>
+  </div>
+</div>
+
     <!-- Next stream countdown -->
     <div class="rec-countdown-bar" id="recCountdownBar" style="display:none;">
       <div class="rec-countdown-icon">
@@ -2201,10 +2213,53 @@ function renderRecordings() {
     // Click handlers
     groups.querySelectorAll('.rec-card2').forEach(card => {
       const vid = card.dataset.vid;
-      if (vid) card.addEventListener('click', () => openRecording(vid));
+      if (vid) card.addEventListener('click', () => openRecording(vid, card));
     });
   }
 }
+
+function openRecording(videoId, cardEl) {
+  if (!videoId) return;
+  const modal   = document.getElementById('recModal');
+  const iframe  = document.getElementById('recModalIframe');
+  const metaEl  = document.getElementById('recModalMeta');
+  if (!modal || !iframe) return;
+
+  // Pull meta from the recording data
+  const rec = _allRecs.find(r => (r.videoId || r.youtubeId) === videoId) || {};
+  const title  = rec.title || rec.className || 'Class Recording';
+  const coach  = rec.coach || rec.instructor || '';
+  const timeStr = _fmtTime(_recStartTime(rec));
+  const dur    = rec.duration || '';
+
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0&modestbranding=1`;
+
+  if (metaEl) {
+    metaEl.innerHTML = `
+      <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px;">${esc(title)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.45);">${coach ? esc(coach) + ' &nbsp;·&nbsp; ' : ''}${timeStr}${dur ? ' &nbsp;·&nbsp; ' + esc(dur) : ''}</div>`;
+  }
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRecModal() {
+  const modal  = document.getElementById('recModal');
+  const iframe = document.getElementById('recModalIframe');
+  if (!modal) return;
+  modal.style.display = 'none';
+  if (iframe) iframe.src = ''; // stop video
+  document.body.style.overflow = '';
+}
+
+function _closeRecModal(e) {
+  // Close only if clicking the backdrop, not the inner content
+  if (e.target === document.getElementById('recModal')) closeRecModal();
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRecModal(); });
 
 function _fmtDate(raw) {
   const d = new Date(raw);
