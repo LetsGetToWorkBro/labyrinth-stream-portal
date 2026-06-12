@@ -202,7 +202,8 @@ body {
 }
 
 /* ── LAYOUT ── */
-.main-layout { flex: 1; overflow: hidden; display: grid; grid-template-columns: 220px 1fr 320px; position: relative; z-index: 2; }
+.main-layout { flex: 1; overflow: hidden; display: grid; grid-template-columns: 220px 1fr 320px; position: relative; z-index: 2; transition: grid-template-columns .2s; }
+.main-layout.no-chat { grid-template-columns: 220px 1fr 0; }
 .sidebar-left { border-right: 1px solid var(--border); background: rgba(5,6,10,0.5); backdrop-filter: blur(12px); display: flex; flex-direction: column; padding-bottom: 16px; overflow: hidden; }
 .sidebar-section-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--faint); padding: 16px 16px 8px; }
 .sidebar-nav-item {
@@ -233,11 +234,11 @@ body {
 
 /* ── PANELS ── */
 .center-area { display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.page-panel { position: absolute; inset: 0; display: none; flex-direction: column; overflow: hidden; }
+.page-panel { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
 .page-panel.active { display: flex; }
 
 /* ── LIVE PAGE ── */
-.video-container { position: relative; flex: 1; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.video-container { position: relative; flex: none; height: calc(100vh - 56px - 52px); min-height: 320px; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .video-bg { position: absolute; inset: 0; background: linear-gradient(160deg, #0a0c14 0%, #050608 50%, #08060e 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
 .video-mat-lines { position: absolute; inset: 0; opacity: .03; background: repeating-linear-gradient(0deg, transparent, transparent 48px, rgba(255,255,255,.5) 48px, rgba(255,255,255,.5) 49px); }
 .video-center-circle { width: 180px; height: 180px; border-radius: 50%; border: 2px solid rgba(var(--th-rgb),.12); position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: border-color .8s; }
@@ -248,7 +249,7 @@ body {
 .lv-count { font-size: 14px; font-weight: 800; color: #fff; }
 .lv-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.45); }
 
-.video-bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 20px 16px; background: linear-gradient(to top, rgba(0,0,0,.75), transparent); display: flex; align-items: center; gap: 12px; pointer-events: none; }
+.video-bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 20px 16px; background: linear-gradient(to top, rgba(0,0,0,.75), transparent); display: flex; align-items: center; gap: 12px; pointer-events: none; z-index: 3; }
 .vctrl-btn { width: 38px; height: 38px; border-radius: 10px; border: none; cursor: pointer; background: rgba(255,255,255,.1); backdrop-filter: blur(8px); color: #fff; display: grid; place-items: center; transition: background .15s; }
 .vctrl-btn:hover { background: rgba(255,255,255,.2); }
 .vctrl-play { width: 46px; height: 46px; border-radius: 13px; background: rgba(var(--th-rgb),.8); transition: background .8s, transform .15s; }
@@ -507,13 +508,27 @@ body {
   margin-bottom: 8px;
 }
 
-/* DAY SUB-HEADER */
+/* DAY SUB-HEADER — collapsible */
 .rec-day-header {
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 20px 0 10px 2px;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 4px;
+  border-radius: 8px;
+  transition: background .15s;
 }
+.rec-day-header:hover { background: rgba(255,255,255,.03); }
+.rec-day-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: rgba(255,255,255,.25);
+  transition: transform .2s;
+}
+.rec-day-header.collapsed .rec-day-chevron { transform: rotate(-90deg); }
+.rec-day-header.collapsed + .rec-grid2 { display: none; }
 .rec-day-dot {
   width: 6px;
   height: 6px;
@@ -751,7 +766,8 @@ body {
 }
 
 /* ── RIGHT SIDEBAR (Chat) ── */
-.sidebar-right { border-left: 1px solid var(--border); background: rgba(5,6,10,0.4); backdrop-filter: blur(12px); display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-right { border-left: 1px solid var(--border); background: rgba(5,6,10,0.4); backdrop-filter: blur(12px); display: none; flex-direction: column; overflow: hidden; }
+.sidebar-right.visible { display: flex; }
 .chat-header { padding: 14px 16px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .chat-title { font-size: 13px; font-weight: 800; color: #fff; }
 .chat-count { font-size: 11px; font-weight: 600; color: var(--muted); }
@@ -1179,19 +1195,7 @@ body {
               </div>
             </div>
           </div>
-          <div class="video-bottom-bar">
-            <button class="vctrl-btn vctrl-play">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            </button>
-            <button class="vctrl-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-            </button>
-            <div class="progress-track"><div class="progress-fill"></div><div class="progress-live"></div></div>
-            <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);">LIVE</span>
-            <button class="vctrl-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-            </button>
-          </div>
+          <!-- bottom bar removed: YouTube iframe provides native controls -->
         </div>
         <!-- Mobile-only stream info shown below video when live -->
         <div class="mobile-stream-info" id="mobileStreamInfo" style="display:none;">
@@ -1700,6 +1704,52 @@ function applyStreamData(data) {
   // Populate next stream info from schedule when offline
   if (!isLive && window.scheduleData && window.scheduleData.length > 0) {
     _updateNextStreamCard(window.scheduleData);
+    _updateSidebarNextClass(window.scheduleData);
+  }
+}
+
+function _updateSidebarNextClass(classes) {
+  const card = document.getElementById('nextClassCard');
+  if (!card) return;
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const cstNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+  const todayIdx = cstNow.getDay();
+  const nowMins  = cstNow.getHours() * 60 + cstNow.getMinutes();
+  function parseMins(t) {
+    if (!t) return null;
+    const s = String(t).trim();
+    const m12 = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (m12) { let h=parseInt(m12[1]); const mn=parseInt(m12[2]); if(/PM/i.test(m12[3])&&h!==12)h+=12; if(/AM/i.test(m12[3])&&h===12)h=0; return h*60+mn; }
+    const m24 = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (m24) return parseInt(m24[1])*60+parseInt(m24[2]);
+    return null;
+  }
+  let next = null;
+  for (let offset = 0; offset < 7 && !next; offset++) {
+    const dayIdx  = (todayIdx + offset) % 7;
+    const dayName = DAYS[dayIdx];
+    const dayCls  = classes.filter(c => String(c.day||c.dayOfWeek||'').trim().toLowerCase() === dayName.toLowerCase());
+    for (const cls of dayCls) {
+      const mins = parseMins(cls.startTime || cls.time);
+      if (mins === null) continue;
+      if (offset === 0 && mins <= nowMins) continue;
+      const label = offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : dayName;
+      const h = Math.floor(mins/60)%24, mn = mins%60, ap = h<12?'AM':'PM', h12 = h%12||12;
+      next = { label, name: cls.name||cls.className||cls.title||'Class', time: `${h12}:${String(mn).padStart(2,'0')} ${ap}` };
+      break;
+    }
+  }
+  if (next) {
+    card.innerHTML = `
+      <div class="schedule-label">Next Class</div>
+      <div class="schedule-item">
+        <span class="schedule-class">${esc(next.name)}</span>
+      </div>
+      <div class="schedule-item" style="border-bottom:none;padding-top:2px;">
+        <span class="schedule-time">${esc(next.label)} · ${esc(next.time)}</span>
+      </div>`;
+  } else {
+    card.innerHTML = '<div class="schedule-label">Next Class</div><div class="schedule-item" style="color:var(--muted);font-size:12px;">No classes scheduled</div>';
   }
 }
 
@@ -1811,8 +1861,9 @@ async function loadSchedule() {
   updateWeekLabel();
   buildDayChips(scheduleData);
   renderSchedule(scheduleData, filteredDay);
-  // Render "Next Class" sidebar card from live schedule data
-  if (typeof renderNextClass === 'function') renderNextClass(scheduleData);
+  // Render next-class cards from live schedule data
+  _updateNextStreamCard(scheduleData);
+  _updateSidebarNextClass(scheduleData);
 }
 
 function updateWeekLabel() {
@@ -2192,15 +2243,17 @@ function renderRecordings() {
         const firstTime = _fmtTime(_recStartTime(items[0]));
         const lastTime  = n > 1 ? _fmtTime(_recStartTime(items[n - 1])) : '';
         const timeRange = firstTime && lastTime ? `${firstTime} – ${lastTime}` : (firstTime || '');
+        const dayId = 'day-' + day.replace(/[^a-z0-9]/gi, '-');
         return `
-          <div class="rec-day-header">
+          <div class="rec-day-header" data-day="${dayId}" onclick="toggleRecDay(this)">
             <span class="rec-day-dot"></span>
             <span class="rec-day-label">${dayLabel}</span>
             ${timeRange ? `<span class="rec-day-timerange">${timeRange}</span>` : ''}
             <span class="rec-day-line"></span>
             <span class="rec-day-count">${n} class${n !== 1 ? 'es' : ''}</span>
+            <svg class="rec-day-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div class="rec-grid2">
+          <div class="rec-grid2" id="${dayId}">
             ${items.map(r => _recCardHTML(r)).join('')}
           </div>`;
       }).join('');
@@ -2219,6 +2272,10 @@ function renderRecordings() {
       if (vid) card.addEventListener('click', () => openRecording(vid, card));
     });
   }
+}
+
+function toggleRecDay(headerEl) {
+  headerEl.classList.toggle('collapsed');
 }
 
 function openRecording(videoId, cardEl) {
@@ -2455,7 +2512,12 @@ function switchPage(pageId) {
     const labels = { live: 'Live', schedule: 'Schedule', recordings: 'Recordings' };
     navLogo.textContent = labels[pageId] || 'Labyrinth';
   }
+  // Show chat panel only on the live page; collapse grid column when hidden
   const isLive = pageId === 'live';
+  const chatPanel = document.querySelector('.sidebar-right');
+  if (chatPanel) chatPanel.classList.toggle('visible', isLive);
+  const mainLayout = document.querySelector('.main-layout');
+  if (mainLayout) mainLayout.classList.toggle('no-chat', !isLive);
   const chatLive  = document.getElementById('chatLiveContent');
   const chatOff   = document.getElementById('chatOffContent');
   const chatTitle = document.getElementById('chatTitle');
@@ -2581,6 +2643,10 @@ function initApp() {
       addMsg({ name:'You', belt:'gold', color:'var(--th)', bg:'rgba(var(--th-rgb),.15)', i: initials }, b.textContent);
     });
   });
+
+  // Ensure grid layout correct for default 'live' page (chat visible)
+  const mainLayout = document.querySelector('.main-layout');
+  if (mainLayout) mainLayout.classList.remove('no-chat');
 
   // Kick off live data load (public — no login needed)
   loadAllData();
