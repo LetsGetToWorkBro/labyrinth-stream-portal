@@ -1671,7 +1671,6 @@ function applyStreamData(data) {
     offlineCard.style.display = isLive ? 'none' : '';
   }
   // Hide/show overlay bars — they overlap offline content on desktop
-  const topBar    = document.querySelector('.video-top-bar');
   const bottomBar = document.querySelector('.video-bottom-bar');
   if (topBar)    topBar.style.display    = isLive ? '' : 'none';
   if (bottomBar) bottomBar.style.display = isLive ? '' : 'none';
