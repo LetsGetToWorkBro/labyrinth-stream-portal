@@ -233,12 +233,31 @@ body {
 .stats-note { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
 /* ── PANELS ── */
+/* center-area is the scroll host for schedule/recordings; live page is non-scrolling */
 .center-area { display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.page-panel { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+/* activity strip lives at bottom of center-area, outside panels */
+.activity-strip-wrap { flex-shrink: 0; height: 52px; position: relative; z-index: 4; }
+/* panels absolutely fill the center-area ABOVE the activity strip */
+.page-panel {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  bottom: 52px; /* activity strip height */
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--th-rgb),.25) transparent;
+}
+.page-panel::-webkit-scrollbar { width: 4px; }
+.page-panel::-webkit-scrollbar-thumb { background: rgba(var(--th-rgb),.25); border-radius: 4px; }
 .page-panel.active { display: flex; }
+/* live page specifically — NO scrolling, video fills the space */
+#panel-live { overflow: hidden; }
 
 /* ── LIVE PAGE ── */
-.video-container { position: relative; flex: none; height: calc(100vh - 56px - 52px); min-height: 320px; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.video-container { position: relative; flex: 1; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .video-bg { position: absolute; inset: 0; background: linear-gradient(160deg, #0a0c14 0%, #050608 50%, #08060e 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
 .video-mat-lines { position: absolute; inset: 0; opacity: .03; background: repeating-linear-gradient(0deg, transparent, transparent 48px, rgba(255,255,255,.5) 48px, rgba(255,255,255,.5) 49px); }
 .video-center-circle { width: 180px; height: 180px; border-radius: 50%; border: 2px solid rgba(var(--th-rgb),.12); position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: border-color .8s; }
@@ -258,7 +277,7 @@ body {
 .progress-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: var(--th); border-radius: 2px; transition: background .8s; }
 .progress-live { position: absolute; right: -4px; top: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--th); box-shadow: 0 0 8px var(--th); transition: all .8s; }
 
-.activity-strip { height: 52px; flex-shrink: 0; border-top: 1px solid var(--border); background: rgba(5,6,10,0.6); backdrop-filter: blur(12px); display: flex; align-items: center; overflow: hidden; padding: 0 16px; }
+.activity-strip { height: 52px; border-top: 1px solid var(--border); background: rgba(5,6,10,0.6); backdrop-filter: blur(12px); display: flex; align-items: center; overflow: hidden; padding: 0 16px; }
 .activity-scroll { display: flex; align-items: center; gap: 20px; animation: scrollA 32s linear infinite; white-space: nowrap; }
 @keyframes scrollA { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 .activity-event { display: flex; align-items: center; gap: 8px; font-size: 12px; white-space: nowrap; }
@@ -269,9 +288,7 @@ body {
 .ae-sep { width: 1px; height: 16px; background: var(--faint); }
 
 /* ── SCHEDULE PAGE ── */
-.schedule-page { padding: 24px; overflow-y: auto; gap: 20px; }
-.schedule-page::-webkit-scrollbar { width: 4px; }
-.schedule-page::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 4px; }
+.schedule-page { padding: 24px; gap: 20px; }
 
 .page-header { margin-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 .page-title { font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -.03em; margin-bottom: 4px; }
@@ -852,6 +869,7 @@ body {
   .page-panel {
     position: static;
     inset: auto;
+    bottom: auto; /* override desktop bottom:52px */
     overflow: visible;
     flex-direction: column;
     display: none;
@@ -860,6 +878,9 @@ body {
     display: flex;
     flex-direction: column;
   }
+  /* activity strip wrap: hide on mobile (it's in normal flow, not needed) */
+  .activity-strip-wrap { display: none; }
+  #panel-live { overflow: visible; }
 
   /* ── LIVE PAGE — mobile layout ── */
 
@@ -1120,15 +1141,15 @@ body {
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar-left">
       <div class="sidebar-section-label">Main</div>
-      <div class="sidebar-nav-item active" data-page="live">
+      <div class="sidebar-nav-item active" data-page="live" onclick="switchPage('live')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
         Live Stream
       </div>
-      <div class="sidebar-nav-item" data-page="schedule">
+      <div class="sidebar-nav-item" data-page="schedule" onclick="switchPage('schedule')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Schedule
       </div>
-      <div class="sidebar-nav-item" data-page="recordings">
+      <div class="sidebar-nav-item" data-page="recordings" onclick="switchPage('recordings')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         Recordings
       </div>
@@ -1183,27 +1204,12 @@ body {
               </button>
             </div>
           </div>
-          <div class="video-top-bar">
-            <div>
-              <div class="stream-title">Fundamentals — Guard Passing Series</div>
-              <div class="stream-meta">Prof. Marcus R. · Labyrinth BJJ Foundations</div>
-            </div>
-            <div class="live-viewer-pill">
-              <div style="display:flex;flex-direction:column;align-items:center;">
-                <span class="lv-count">247</span>
-                <span class="lv-label">watching</span>
-              </div>
-            </div>
-          </div>
-          <!-- bottom bar removed: YouTube iframe provides native controls -->
+          <!-- top/bottom bars removed: YouTube iframe provides native controls for clean embed -->
         </div>
         <!-- Mobile-only stream info shown below video when live -->
         <div class="mobile-stream-info" id="mobileStreamInfo" style="display:none;">
           <div class="stream-title" id="mobileStreamTitle">Live Class</div>
           <div class="stream-meta" id="mobileStreamMeta"></div>
-        </div>
-        <div class="activity-strip">
-          <div class="activity-scroll" id="activityScroll"></div>
         </div>
       </div>
 
@@ -1400,6 +1406,12 @@ body {
     </div>
   </div>
 </div>
+      <!-- Activity strip — always visible at bottom of center area -->
+      <div class="activity-strip-wrap">
+        <div class="activity-strip">
+          <div class="activity-scroll" id="activityScroll"></div>
+        </div>
+      </div>
     </main>
 
     <!-- RIGHT SIDEBAR (Chat) -->
@@ -1581,17 +1593,8 @@ function applyStreamData(data) {
   const viewers  = data.viewerCount || data.viewers || 0;
 
   // Title / meta text — only update the overlay bars, not the offline card text
-  const titleEl = document.querySelector('.video-top-bar .stream-title');
-  const metaEl  = document.querySelector('.video-top-bar .stream-meta');
-  if (titleEl) titleEl.textContent = title;
-  if (metaEl)  metaEl.textContent  = [coach, location].filter(Boolean).join(' · ');
-  // Show/hide top bar based on live state
-  const topBar = document.querySelector('.video-top-bar');
-  const botBar = document.querySelector('.video-bottom-bar');
-  if (topBar) topBar.style.display = isLive ? '' : 'none';
-  if (botBar) botBar.style.display = isLive ? '' : 'none';
-
-  // Viewer count
+  // (top/bottom bars removed — clean YT embed)
+  // Viewer count shown in nav if present
   const countEl = document.querySelector('.lv-count');
   if (countEl) countEl.textContent = viewers > 0 ? viewers.toLocaleString() : '—';
 
@@ -1674,10 +1677,6 @@ function applyStreamData(data) {
   if (offlineCard) {
     offlineCard.style.display = isLive ? 'none' : '';
   }
-  // Hide/show overlay bars — they overlap offline content on desktop
-  const bottomBar = document.querySelector('.video-bottom-bar');
-  if (topBar)    topBar.style.display    = isLive ? '' : 'none';
-  if (bottomBar) bottomBar.style.display = isLive ? '' : 'none';
 
   // Mobile layout adjustments
   const container2 = document.querySelector('.video-container');
@@ -2678,44 +2677,7 @@ document.addEventListener('DOMContentLoaded', initApp);
   </button>
 </nav>
 
-<script>
-/* ── Sync mobile bottom nav active state with switchPage ── */
-(function() {
-  const _origSwitchPage = window.switchPage;
-  function _syncMobNav(pageId) {
-    document.querySelectorAll('.mob-nav-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.page === pageId);
-    });
-  }
-  // Wrap switchPage when it's available
-  function _hookSwitchPage() {
-    if (typeof window.switchPage === 'function' && window.switchPage !== _hookedSwitchPage) {
-      const _orig = window.switchPage;
-      window._hookedSwitchPage = function(pageId) {
-        _orig(pageId);
-        _syncMobNav(pageId);
-      };
-      window.switchPage = window._hookedSwitchPage;
-    }
-  }
-  // Sync live dot with the desktop live dot
-  function _syncLiveDot() {
-    const desktopDot = document.querySelector('.nav-live-dot');
-    const mobDot = document.getElementById('mobLiveDot');
-    if (desktopDot && mobDot) {
-      mobDot.style.display = desktopDot.style.display || (desktopDot.hidden ? 'none' : '');
-    }
-  }
-  document.addEventListener('DOMContentLoaded', function() {
-    _hookSwitchPage();
-    // Observe desktop live dot changes
-    const desktopDot = document.querySelector('.nav-live-dot');
-    if (desktopDot && window.MutationObserver) {
-      new MutationObserver(_syncLiveDot).observe(desktopDot, { attributes: true, attributeFilter: ['style','hidden','class'] });
-    }
-  });
-})();
-</script>
+<!-- IIFE nav hook removed: switchPage handles mob nav sync directly -->
 
 </body>
 </html>
