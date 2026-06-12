@@ -241,14 +241,14 @@ body {
 .video-bg { position: absolute; inset: 0; background: linear-gradient(160deg, #0a0c14 0%, #050608 50%, #08060e 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
 .video-mat-lines { position: absolute; inset: 0; opacity: .03; background: repeating-linear-gradient(0deg, transparent, transparent 48px, rgba(255,255,255,.5) 48px, rgba(255,255,255,.5) 49px); }
 .video-center-circle { width: 180px; height: 180px; border-radius: 50%; border: 2px solid rgba(var(--th-rgb),.12); position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: border-color .8s; }
-.video-top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; background: linear-gradient(to bottom, rgba(0,0,0,.65), transparent); }
+.video-top-bar { position: absolute; top: 0; left: 0; right: 0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; background: linear-gradient(to bottom, rgba(0,0,0,.65), transparent); pointer-events: none; }
 .stream-title { font-size: 16px; font-weight: 800; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
 .stream-meta { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.55); margin-top: 3px; }
 .live-viewer-pill { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.6); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 6px 12px; }
 .lv-count { font-size: 14px; font-weight: 800; color: #fff; }
 .lv-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.45); }
 
-.video-bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 20px 16px; background: linear-gradient(to top, rgba(0,0,0,.75), transparent); display: flex; align-items: center; gap: 12px; }
+.video-bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 20px 16px; background: linear-gradient(to top, rgba(0,0,0,.75), transparent); display: flex; align-items: center; gap: 12px; pointer-events: none; }
 .vctrl-btn { width: 38px; height: 38px; border-radius: 10px; border: none; cursor: pointer; background: rgba(255,255,255,.1); backdrop-filter: blur(8px); color: #fff; display: grid; place-items: center; transition: background .15s; }
 .vctrl-btn:hover { background: rgba(255,255,255,.2); }
 .vctrl-play { width: 46px; height: 46px; border-radius: 13px; background: rgba(var(--th-rgb),.8); transition: background .8s, transform .15s; }
@@ -1299,23 +1299,23 @@ body {
         <button class="rec-type-btn active" data-type="all">
           <span class="rec-type-dot" style="background:var(--th)"></span>All Classes
         </button>
-        <button class="rec-type-btn" data-type="gi">
-          <span class="rec-type-dot" style="background:#60a5fa"></span>Gi
+        <button class="rec-type-btn" data-type="adult">
+          <span class="rec-type-dot" style="background:#60a5fa"></span>Adult BJJ
         </button>
-        <button class="rec-type-btn" data-type="nogi">
-          <span class="rec-type-dot" style="background:#c084fc"></span>No-Gi
+        <button class="rec-type-btn" data-type="kids">
+          <span class="rec-type-dot" style="background:#fbbf24"></span>Kids
+        </button>
+        <button class="rec-type-btn" data-type="wrestling">
+          <span class="rec-type-dot" style="background:#c084fc"></span>Wrestling
         </button>
         <button class="rec-type-btn" data-type="competition">
-          <span class="rec-type-dot" style="background:#f87171"></span>Competition
-        </button>
-        <button class="rec-type-btn" data-type="fundamentals">
-          <span class="rec-type-dot" style="background:var(--th)"></span>Fundamentals
+          <span class="rec-type-dot" style="background:#f87171"></span>Comp
         </button>
         <button class="rec-type-btn" data-type="open">
           <span class="rec-type-dot" style="background:#4ade80"></span>Open Mat
         </button>
-        <button class="rec-type-btn" data-type="kids">
-          <span class="rec-type-dot" style="background:#fbbf24"></span>Kids
+        <button class="rec-type-btn" data-type="pans">
+          <span class="rec-type-dot" style="background:var(--th)"></span>Pans Prep
         </button>
       </div>
     </div>
@@ -1671,6 +1671,11 @@ function applyStreamData(data) {
   if (offlineCard) {
     offlineCard.style.display = isLive ? 'none' : '';
   }
+  // Hide/show overlay bars — they overlap offline content on desktop
+  const topBar    = document.querySelector('.video-top-bar');
+  const bottomBar = document.querySelector('.video-bottom-bar');
+  if (topBar)    topBar.style.display    = isLive ? '' : 'none';
+  if (bottomBar) bottomBar.style.display = isLive ? '' : 'none';
 
   // Mobile layout adjustments
   const container2 = document.querySelector('.video-container');
@@ -2085,16 +2090,16 @@ function renderRecordings() {
     });
   }
 
-  // Filter: type
+  // Filter: type — matched against actual Labyrinth BJJ class title patterns
   if (_recFilterType !== 'all') {
     recs = recs.filter(r => {
       const t = ((r.type || r.classType || r.className || r.title || '').toLowerCase());
-      if (_recFilterType === 'gi') return t.includes('gi') && !t.includes('no-gi') && !t.includes('nogi');
-      if (_recFilterType === 'nogi') return t.includes('no-gi') || t.includes('nogi');
+      if (_recFilterType === 'adult')       return (t.includes('adult') || t.includes('adult bjj') || t.includes('adult & teens') || t.includes('teens')) && !t.includes('kid');
+      if (_recFilterType === 'kids')        return t.includes('kid') || t.includes('junior');
+      if (_recFilterType === 'wrestling')   return t.includes('wrestling');
       if (_recFilterType === 'competition') return t.includes('comp');
-      if (_recFilterType === 'fundamentals') return t.includes('fund') || t.includes('basic') || t.includes('beginner');
-      if (_recFilterType === 'open') return t.includes('open');
-      if (_recFilterType === 'kids') return t.includes('kid') || t.includes('junior');
+      if (_recFilterType === 'open')        return t.includes('open mat') || t.includes('open');
+      if (_recFilterType === 'pans')        return t.includes('pans');
       return true;
     });
   }
