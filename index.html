@@ -2326,8 +2326,10 @@ function _recCardHTML(r) {
   const durStr   = r.duration || '';
   const isNew    = r.isNew || false;
   const progress = r.watchProgress || 0;
-  // Use sddefault for better mid-stream content shot; fall back to mqdefault if missing
-  const thumbSd  = vid ? `https://img.youtube.com/vi/${vid}/sddefault.jpg` : '';
+  // hqdefault (480×360) is always generated for completed streams; mqdefault as fallback.
+  // sddefault is NOT used — YouTube serves a blank grey image for unlisted streams (200, not 404),
+  // so onerror never fires and the fallback chain never triggers.
+  const thumbSd  = vid ? `https://img.youtube.com/vi/${vid}/hqdefault.jpg` : '';
   const thumbMq  = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
   const type     = _recCardType(r);
   const startD   = _recStartTime(r);
