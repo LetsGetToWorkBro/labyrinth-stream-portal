@@ -1186,30 +1186,21 @@ body {
           <div class="video-bg" id="streamOfflineCard">
             <div class="video-mat-lines"></div>
             <div class="video-center-circle"></div>
-            <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:24px;">
-              <div style="width:64px;height:64px;border-radius:20px;border:1px solid rgba(var(--th-rgb),.2);background:rgba(var(--th-rgb),.07);display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),0.6)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2"/></svg>
+            <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;">
+              <div style="width:56px;height:56px;border-radius:18px;border:1px solid rgba(var(--th-rgb),.2);background:rgba(var(--th-rgb),.07);display:flex;align-items:center;justify-content:center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),0.6)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
               </div>
-              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),0.7);">No Live Stream</div>
-              <div style="font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;" id="offlineTitle">No class streaming right now</div>
-              <div style="font-size:13px;color:rgba(255,255,255,.4);line-height:1.6;max-width:320px;" id="offlineSubtitle">Check back during a scheduled class or browse recordings below.</div>
-              <div id="nextStreamCard" style="margin-top:16px;padding:14px 20px;border-radius:14px;background:rgba(var(--th-rgb),.08);border:1px solid rgba(var(--th-rgb),.18);min-width:240px;display:none;">
-                <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),.7);margin-bottom:6px;">Next Scheduled Stream</div>
-                <div style="font-size:16px;font-weight:800;color:#fff;" id="nextStreamName">—</div>
-                <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;" id="nextStreamTime">—</div>
-                <div id="nextStreamCountdown" style="margin-top:10px;font-size:28px;font-weight:900;color:var(--th);letter-spacing:.02em;font-variant-numeric:tabular-nums;">—</div>
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),0.6);">No Live Stream</div>
+              <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.02em;">No class streaming right now</div>
+              <div id="nextStreamCard" style="margin-top:8px;padding:14px 24px;border-radius:14px;background:rgba(var(--th-rgb),.08);border:1px solid rgba(var(--th-rgb),.18);min-width:220px;display:none;">
+                <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(var(--th-rgb),.6);margin-bottom:6px;">Next Scheduled Stream</div>
+                <div style="font-size:15px;font-weight:800;color:#fff;" id="nextStreamName">—</div>
+                <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:3px;" id="nextStreamTime">—</div>
+                <div id="nextStreamCountdown" style="margin-top:10px;font-size:26px;font-weight:900;color:var(--th);letter-spacing:.02em;font-variant-numeric:tabular-nums;">—</div>
               </div>
-              <button onclick="switchPage('recordings')" style="margin-top:20px;padding:11px 28px;border-radius:12px;border:1px solid rgba(var(--th-rgb),.3);background:rgba(var(--th-rgb),.1);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;letter-spacing:.02em;">
-                Browse Recordings
-              </button>
             </div>
           </div>
-          <!-- top/bottom bars removed: YouTube iframe provides native controls for clean embed -->
-        </div>
-        <!-- Mobile-only stream info shown below video when live -->
-        <div class="mobile-stream-info" id="mobileStreamInfo" style="display:none;">
-          <div class="stream-title" id="mobileStreamTitle">Live Class</div>
-          <div class="stream-meta" id="mobileStreamMeta"></div>
+          <!-- YouTube iframe injected here when live -->
         </div>
       </div>
 
@@ -1678,11 +1669,8 @@ function applyStreamData(data) {
     offlineCard.style.display = isLive ? 'none' : '';
   }
 
-  // Mobile layout adjustments
+  // Mobile layout: video is 16:9 when live, auto height when offline
   const container2 = document.querySelector('.video-container');
-  const mobileInfo = document.getElementById('mobileStreamInfo');
-  const mobileTitle = document.getElementById('mobileStreamTitle');
-  const mobileMeta  = document.getElementById('mobileStreamMeta');
   if (container2) {
     if (isLive) {
       container2.style.aspectRatio = '16/9';
@@ -1690,13 +1678,6 @@ function applyStreamData(data) {
     } else {
       container2.style.aspectRatio = '';
       container2.style.overflow = 'visible';
-    }
-  }
-  if (mobileInfo) {
-    mobileInfo.style.display = isLive ? 'block' : 'none';
-    if (isLive) {
-      if (mobileTitle) mobileTitle.textContent = title;
-      if (mobileMeta)  mobileMeta.textContent  = [coach, location].filter(Boolean).join(' · ');
     }
   }
 
