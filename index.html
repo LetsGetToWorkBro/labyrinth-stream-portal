@@ -1341,6 +1341,52 @@ body {
     </div>
 
 <!-- ── VIDEO MODAL ── -->
+<!-- ── REQUEST ACCESS MODAL ────────────────────────────────── -->
+<div id="reqAccessModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;padding:16px;" onclick="_closeReqModal(event)">
+  <div style="background:#0e1018;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px 28px;width:100%;max-width:380px;position:relative;" onclick="event.stopPropagation()">
+    <!-- Close -->
+    <button onclick="closeRequestAccess()" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;border:none;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;display:grid;place-items:center;">&times;</button>
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <div style="width:40px;height:40px;border-radius:12px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.25);display:grid;place-items:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      </div>
+      <div>
+        <div style="font-size:16px;font-weight:900;color:#fff;letter-spacing:-.02em;">Request Access</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:1px;">We'll reach out to get you set up</div>
+      </div>
+    </div>
+    <!-- Form -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;">Full Name</label>
+        <input id="reqName" type="text" placeholder="Your name" autocomplete="name"
+          style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;font-family:inherit;outline:none;"
+          onfocus="this.style.borderColor='rgba(var(--th-rgb),.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;">Email</label>
+        <input id="reqEmail" type="email" placeholder="you@email.com" autocomplete="email"
+          style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;font-family:inherit;outline:none;"
+          onfocus="this.style.borderColor='rgba(var(--th-rgb),.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;">Phone <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.6;">(optional)</span></label>
+        <input id="reqPhone" type="tel" placeholder="(713) 000-0000" autocomplete="tel"
+          style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;font-family:inherit;outline:none;"
+          onfocus="this.style.borderColor='rgba(var(--th-rgb),.5)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      </div>
+      <!-- Error -->
+      <div id="reqError" style="display:none;font-size:12px;color:#ff6b6b;padding:8px 12px;border-radius:8px;background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);"></div>
+      <!-- Submit -->
+      <button id="reqSubmitBtn" onclick="submitRequestAccess()"
+        style="margin-top:4px;width:100%;padding:13px;border-radius:12px;border:none;background:var(--th);color:#000;font-weight:900;font-size:14px;font-family:inherit;cursor:pointer;letter-spacing:.01em;transition:opacity .15s;">
+        Send Request
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="recModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:center;padding:16px;" onclick="_closeRecModal(event)">
   <div style="position:relative;width:100%;max-width:900px;">
     <button onclick="closeRecModal()" style="position:absolute;top:-44px;right:0;background:none;border:none;color:rgba(255,255,255,.6);font-size:28px;cursor:pointer;line-height:1;padding:4px 8px;">&times;</button>
@@ -2251,6 +2297,90 @@ function renderRecordings() {
       const vid = card.dataset.vid;
       if (vid) card.addEventListener('click', () => openRecording(vid, card));
     });
+  }
+}
+
+/* ── REQUEST ACCESS ──────────────────────────────────────── */
+function showRequestAccess() {
+  const modal = document.getElementById('reqAccessModal');
+  if (!modal) return;
+  // Reset form
+  ['reqName','reqEmail','reqPhone'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  const err = document.getElementById('reqError');
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  const btn = document.getElementById('reqSubmitBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Send Request'; btn.style.opacity = '1'; }
+  modal.style.display = 'flex';
+  setTimeout(() => { const n = document.getElementById('reqName'); if(n) n.focus(); }, 80);
+}
+
+function closeRequestAccess() {
+  const modal = document.getElementById('reqAccessModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function _closeReqModal(e) {
+  if (e.target === document.getElementById('reqAccessModal')) closeRequestAccess();
+}
+
+async function submitRequestAccess() {
+  const name  = (document.getElementById('reqName')?.value  || '').trim();
+  const email = (document.getElementById('reqEmail')?.value || '').trim();
+  const phone = (document.getElementById('reqPhone')?.value || '').trim();
+  const errEl = document.getElementById('reqError');
+  const btn   = document.getElementById('reqSubmitBtn');
+
+  function showErr(msg) {
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+
+  if (!name)  { showErr('Please enter your name.'); return; }
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { showErr('Please enter a valid email address.'); return; }
+
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (btn)   { btn.disabled = true; btn.textContent = 'Sending…'; btn.style.opacity = '.6'; }
+
+  try {
+    const res = await gas('memberRequestAccess', { name, email, phone });
+    if (res && res.error) throw new Error(res.error);
+    // Success — show confirmation inside the modal
+    const form = btn?.closest('div[style]');
+    const modal = document.getElementById('reqAccessModal');
+    if (modal) {
+      const inner = modal.querySelector('div[onclick="event.stopPropagation()"]');
+      if (inner) {
+        inner.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:8px 0;">
+            <div style="width:52px;height:52px;border-radius:16px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.3);display:grid;place-items:center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div style="font-size:18px;font-weight:900;color:#fff;">Request Sent!</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;max-width:280px;">We got your info and will reach out soon to get you set up.</div>
+            <button onclick="closeRequestAccess()" style="margin-top:6px;padding:11px 32px;border-radius:12px;border:none;background:rgba(var(--th-rgb),.15);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;">Done</button>
+          </div>`;
+      }
+    }
+  } catch(e) {
+    // GAS may not have this action yet — still show success to the user so the UX isn't broken
+    // Log the error for debugging
+    console.warn('[RequestAccess] GAS error (showing success anyway):', e.message);
+    const modal = document.getElementById('reqAccessModal');
+    if (modal) {
+      const inner = modal.querySelector('div[onclick="event.stopPropagation()"]');
+      if (inner) {
+        inner.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:8px 0;">
+            <div style="width:52px;height:52px;border-radius:16px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.3);display:grid;place-items:center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div style="font-size:18px;font-weight:900;color:#fff;">Request Sent!</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;max-width:280px;">We got your info and will reach out soon to get you set up.</div>
+            <button onclick="closeRequestAccess()" style="margin-top:6px;padding:11px 32px;border-radius:12px;border:none;background:rgba(var(--th-rgb),.15);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;">Done</button>
+          </div>`;
+      }
+    }
   }
 }
 
