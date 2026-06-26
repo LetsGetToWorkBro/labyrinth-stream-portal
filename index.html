@@ -2343,7 +2343,7 @@ async function submitRequestAccess() {
   if (btn)   { btn.disabled = true; btn.textContent = 'Sending…'; btn.style.opacity = '.6'; }
 
   try {
-    const res = await gas('memberRequestAccess', { name, email, phone });
+    const res = await gas('requestAccess', { name, email, phone });
     if (res && res.error) throw new Error(res.error);
     // Success — show confirmation inside the modal
     const form = btn?.closest('div[style]');
