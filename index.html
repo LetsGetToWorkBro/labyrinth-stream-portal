@@ -2328,7 +2328,14 @@ async function submitRequestAccess() {
       console.warn('[RequestAccess] Auto-approve failed:', approveErr.message);
     }
 
-    // Step 3: show success
+    // Step 3: send them a password setup email so they can log in immediately
+    try {
+      await gas('memberRequestReset', { email });
+    } catch(emailErr) {
+      console.warn('[RequestAccess] Setup email failed:', emailErr.message);
+    }
+
+    // Step 4: show success
     _showReqSuccess();
   } catch(e) {
     console.warn('[RequestAccess] Error:', e.message);
