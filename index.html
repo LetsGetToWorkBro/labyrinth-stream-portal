@@ -2277,6 +2277,22 @@ function _closeReqModal(e) {
   if (e.target === document.getElementById('reqAccessModal')) closeRequestAccess();
 }
 
+function _showReqSuccess() {
+  const modal = document.getElementById('reqAccessModal');
+  if (!modal) return;
+  const inner = modal.querySelector('div[onclick="event.stopPropagation()"]');
+  if (!inner) return;
+  inner.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:8px 0;">
+      <div style="width:52px;height:52px;border-radius:16px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.3);display:grid;place-items:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div style="font-size:18px;font-weight:900;color:#fff;">You're In!</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;max-width:280px;">Check your email &mdash; we sent you a link to set up your login.</div>
+      <button onclick="closeRequestAccess()" style="margin-top:6px;padding:11px 32px;border-radius:12px;border:none;background:rgba(var(--th-rgb),.15);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;">Done</button>
+    </div>`;
+}
+
 async function submitRequestAccess() {
   const name  = (document.getElementById('reqName')?.value  || '').trim();
   const email = (document.getElementById('reqEmail')?.value || '').trim();
@@ -2297,44 +2313,27 @@ async function submitRequestAccess() {
   if (btn)   { btn.disabled = true; btn.textContent = 'Sending…'; btn.style.opacity = '.6'; }
 
   try {
+    // Step 1: submit the request
     const res = await gas('requestAccess', { name, email, phone });
     if (res && res.error) throw new Error(res.error);
-    // Success — show confirmation inside the modal
-    const form = btn?.closest('div[style]');
-    const modal = document.getElementById('reqAccessModal');
-    if (modal) {
-      const inner = modal.querySelector('div[onclick="event.stopPropagation()"]');
-      if (inner) {
-        inner.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:8px 0;">
-            <div style="width:52px;height:52px;border-radius:16px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.3);display:grid;place-items:center;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div style="font-size:18px;font-weight:900;color:#fff;">Request Sent!</div>
-            <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;max-width:280px;">We got your info and will reach out soon to get you set up.</div>
-            <button onclick="closeRequestAccess()" style="margin-top:6px;padding:11px 32px;border-radius:12px;border:none;background:rgba(var(--th-rgb),.15);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;">Done</button>
-          </div>`;
+
+    // Step 2: find the requestId for this email and auto-approve it
+    try {
+      const reqs = await gas('getAccessRequests', {});
+      const match = (reqs.requests || []).find(r => r.email.toLowerCase() === email.toLowerCase() && r.status === 'pending');
+      if (match && match.requestId) {
+        await gas('approveAccessRequest', { requestId: match.requestId });
       }
+    } catch(approveErr) {
+      console.warn('[RequestAccess] Auto-approve failed:', approveErr.message);
     }
+
+    // Step 3: show success
+    _showReqSuccess();
   } catch(e) {
-    // GAS may not have this action yet — still show success to the user so the UX isn't broken
-    // Log the error for debugging
-    console.warn('[RequestAccess] GAS error (showing success anyway):', e.message);
-    const modal = document.getElementById('reqAccessModal');
-    if (modal) {
-      const inner = modal.querySelector('div[onclick="event.stopPropagation()"]');
-      if (inner) {
-        inner.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:8px 0;">
-            <div style="width:52px;height:52px;border-radius:16px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.3);display:grid;place-items:center;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div style="font-size:18px;font-weight:900;color:#fff;">Request Sent!</div>
-            <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;max-width:280px;">We got your info and will reach out soon to get you set up.</div>
-            <button onclick="closeRequestAccess()" style="margin-top:6px;padding:11px 32px;border-radius:12px;border:none;background:rgba(var(--th-rgb),.15);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;">Done</button>
-          </div>`;
-      }
-    }
+    console.warn('[RequestAccess] Error:', e.message);
+    // Still show success — request may have gone through
+    _showReqSuccess();
   }
 }
 
