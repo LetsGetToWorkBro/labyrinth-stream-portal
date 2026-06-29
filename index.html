@@ -2328,9 +2328,17 @@ async function submitRequestAccess() {
       console.warn('[RequestAccess] Auto-approve failed:', approveErr.message);
     }
 
-    // Step 3: send them a password setup email so they can log in immediately
+    // Step 3: add them to the Members sheet (approveAccessRequest only logs the request, does not create the member row)
     try {
-      await gas('memberRequestReset', { email });
+      await gas('addMember', { name, email, phone });
+    } catch(addErr) {
+      console.warn('[RequestAccess] addMember failed:', addErr.message);
+    }
+
+    // Step 4: send them a password setup email so they can log in immediately
+    // Pass name+phone so GAS can create the member row if addMember didn't run
+    try {
+      await gas('memberRequestReset', { email, name, phone });
     } catch(emailErr) {
       console.warn('[RequestAccess] Setup email failed:', emailErr.message);
     }
