@@ -1081,6 +1081,35 @@ body {
 <!-- ══════════════════════════════════════
      LOGIN PAGE
 ══════════════════════════════════════ -->
+<!-- ══════════════════════════════════════
+     ACCOUNT SETUP PAGE (?setup=token)
+══════════════════════════════════════ -->
+<div id="page-setup" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">
+        <div style="width:24px;height:24px;background:var(--th);-webkit-mask-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>');mask-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5%22/></svg>');-webkit-mask-size:cover;mask-size:cover;"></div>
+      </div>
+      <div class="login-brand">
+        <div class="login-brand-name">Labyrinth BJJ</div>
+        <div class="login-brand-sub">Member Portal</div>
+      </div>
+    </div>
+    <div class="login-heading">Set Your Password</div>
+    <div class="login-sub">Welcome! Create a password to access your account.</div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" type="password" id="setupPassword" placeholder="Choose a password" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm Password</label>
+      <input class="form-input" type="password" id="setupPasswordConfirm" placeholder="Confirm your password" autocomplete="new-password">
+    </div>
+    <div id="setupError" style="color:#ef4444;font-size:13px;text-align:center;min-height:18px;margin-bottom:6px;"></div>
+    <button class="btn-secondary" id="btnSetupSubmit" onclick="doSetup()">Create Account</button>
+  </div>
+</div>
+
 <div id="page-login">
   <div class="login-card">
     <div class="login-logo">
@@ -2728,6 +2757,72 @@ function initApp() {
 
   // Kick off live data load (public — no login needed)
   loadAllData();
+}
+
+/* ── Account Setup (?setup=token) ─────────────────────────────── */
+let _setupToken = null;
+
+(function detectSetupToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('setup');
+  if (!token) return;
+  _setupToken = token;
+  // Hide login, show setup screen
+  document.addEventListener('DOMContentLoaded', () => {
+    const loginPage = document.getElementById('page-login');
+    const setupPage = document.getElementById('page-setup');
+    if (loginPage) loginPage.style.display = 'none';
+    if (setupPage) setupPage.style.display = '';
+    // Auto-focus password field
+    const pw = document.getElementById('setupPassword');
+    if (pw) setTimeout(() => pw.focus(), 100);
+  });
+})();
+
+async function doSetup() {
+  const pw1 = (document.getElementById('setupPassword')?.value || '').trim();
+  const pw2 = (document.getElementById('setupPasswordConfirm')?.value || '').trim();
+  const errEl = document.getElementById('setupError');
+  const btn   = document.getElementById('btnSetupSubmit');
+
+  if (!pw1) { errEl.textContent = 'Please enter a password.'; return; }
+  if (pw1.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if (pw1 !== pw2) { errEl.textContent = 'Passwords do not match.'; return; }
+  if (!_setupToken) { errEl.textContent = 'Invalid setup link. Please request access again.'; return; }
+
+  errEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Setting up…';
+
+  try {
+    const res = await gas('memberSetupAccount', { token: _setupToken, password: pw1 });
+    if (res.success) {
+      // Clear token from URL without reload
+      window.history.replaceState({}, '', window.location.pathname);
+      _setupToken = null;
+      // Show login with success message
+      const setupPage = document.getElementById('page-setup');
+      const loginPage = document.getElementById('page-login');
+      if (setupPage) setupPage.style.display = 'none';
+      if (loginPage) loginPage.style.display = '';
+      // Pre-fill email if returned
+      if (res.email) {
+        const emailEl = document.querySelector('#loginEmail') || document.querySelector('input[type="email"]');
+        if (emailEl) emailEl.value = res.email;
+      }
+      showLoginError('✅ Password set! You can now sign in.');
+      const errLoginEl = document.getElementById('loginError') || document.querySelector('.login-error');
+      if (errLoginEl) errLoginEl.style.color = '#22c55e';
+    } else {
+      errEl.textContent = res.error || 'Setup failed. Your link may have expired — request access again.';
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  } catch(e) {
+    errEl.textContent = 'Connection error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
