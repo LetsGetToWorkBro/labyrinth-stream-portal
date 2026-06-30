@@ -2795,7 +2795,7 @@ async function doSetup() {
   btn.textContent = 'Setting up…';
 
   try {
-    const res = await gas('memberSetupAccount', { token: _setupToken, password: pw1 });
+    const res = await gas('memberCompleteSetup', { token: _setupToken, password: pw1 });
     if (res.success) {
       // Clear token from URL without reload
       window.history.replaceState({}, '', window.location.pathname);
