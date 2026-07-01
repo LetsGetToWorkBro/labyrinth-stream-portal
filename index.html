@@ -2322,6 +2322,22 @@ function _showReqSuccess() {
     </div>`;
 }
 
+function _showReqAlreadyMember() {
+  const modal = document.getElementById('reqAccessModal');
+  if (!modal) return;
+  const inner = modal.querySelector('div[onclick="event.stopPropagation()"]');
+  if (!inner) return;
+  inner.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:8px 0;">
+      <div style="width:52px;height:52px;border-radius:16px;background:rgba(var(--th-rgb),.12);border:1px solid rgba(var(--th-rgb),.3);display:grid;place-items:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--th-rgb),1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div style="font-size:18px;font-weight:900;color:#fff;">Account Exists</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;max-width:280px;">You already have an account. Just log in with your email and password.</div>
+      <button onclick="closeRequestAccess()" style="margin-top:6px;padding:11px 32px;border-radius:12px;border:none;background:rgba(var(--th-rgb),.15);color:var(--th);font-weight:800;font-size:13px;font-family:inherit;cursor:pointer;">Got it</button>
+    </div>`;
+}
+
 async function submitRequestAccess() {
   const name  = (document.getElementById('reqName')?.value  || '').trim();
   const email = (document.getElementById('reqEmail')?.value || '').trim();
@@ -2342,11 +2358,29 @@ async function submitRequestAccess() {
   if (btn)   { btn.disabled = true; btn.textContent = 'Sending…'; btn.style.opacity = '.6'; }
 
   try {
-    // Step 1: submit the request
+    // Step 1: Check if member already exists with a password set
+    try {
+      const existing = await gas('getMemberByEmail', { email });
+      if (existing && existing.success && existing.member) {
+        if (existing.member.passwordHash || existing.member.PasswordHash) {
+          // Already fully set up — just tell them to log in
+          _showReqAlreadyMember();
+          return;
+        }
+        // Exists but no password yet — just resend setup link
+        await gas('memberRequestReset', { email, name, phone });
+        _showReqSuccess();
+        return;
+      }
+    } catch(checkErr) {
+      console.warn('[RequestAccess] Existing check failed:', checkErr.message);
+    }
+
+    // Step 2: New member — submit the request
     const res = await gas('requestAccess', { name, email, phone });
     if (res && res.error) throw new Error(res.error);
 
-    // Step 2: find the requestId for this email and auto-approve it
+    // Step 3: find the requestId for this email and auto-approve it
     try {
       const reqs = await gas('getAccessRequests', {});
       const match = (reqs.requests || []).find(r => r.email.toLowerCase() === email.toLowerCase() && r.status === 'pending');
@@ -2357,22 +2391,14 @@ async function submitRequestAccess() {
       console.warn('[RequestAccess] Auto-approve failed:', approveErr.message);
     }
 
-    // Step 3: add them to the Members sheet (approveAccessRequest only logs the request, does not create the member row)
-    try {
-      await gas('addMember', { name, email, phone });
-    } catch(addErr) {
-      console.warn('[RequestAccess] addMember failed:', addErr.message);
-    }
-
-    // Step 4: send them a password setup email so they can log in immediately
-    // Pass name+phone so GAS can create the member row if addMember didn't run
+    // Step 4: send setup email — doMemberRequestReset creates the member row if needed
     try {
       await gas('memberRequestReset', { email, name, phone });
     } catch(emailErr) {
       console.warn('[RequestAccess] Setup email failed:', emailErr.message);
     }
 
-    // Step 4: show success
+    // Show success
     _showReqSuccess();
   } catch(e) {
     console.warn('[RequestAccess] Error:', e.message);
