@@ -1136,7 +1136,8 @@ body {
     </div>
 
     <button class="btn-secondary" id="btnSignIn" onclick="doLogin()">Sign In</button>
-    <p style="text-align:center;margin:10px 0 0;font-size:12px;color:var(--muted);">Not a member? <button id="btnRequestAccess" type="button" style="background:none;border:none;padding:0;color:var(--th);font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;" onclick="showRequestAccess()">Request Access</button></p>
+    <p style="text-align:center;margin:8px 0 0;font-size:12px;color:var(--muted);"><button type="button" onclick="doForgotPassword()" style="background:none;border:none;padding:0;color:rgba(255,255,255,.35);font-size:12px;font-family:inherit;cursor:pointer;">Forgot password?</button></p>
+    <p style="text-align:center;margin:6px 0 0;font-size:12px;color:var(--muted);">Not a member? <button id="btnRequestAccess" type="button" style="background:none;border:none;padding:0;color:var(--th);font-weight:700;font-size:12px;font-family:inherit;cursor:pointer;" onclick="showRequestAccess()">Request Access</button></p>
 
   </div>
 </div>
@@ -1564,6 +1565,31 @@ async function doLogin() {
     showLoginError(res.message || 'Check your email for a verification code.');
   } else {
     showLoginError(res.error || 'Incorrect email or password.');
+  }
+}
+
+async function doForgotPassword() {
+  const emailEl = document.getElementById('loginEmail');
+  const email   = (emailEl?.value || '').trim();
+
+  if (!email) {
+    showLoginError('Enter your email above, then click Forgot password.');
+    if (emailEl) emailEl.focus();
+    return;
+  }
+
+  showLoginError('Sending reset link…');
+
+  try {
+    const res = await gas('memberRequestReset', { email });
+    if (res.success) {
+      showLoginError('✅ Check your email for a new setup link.');
+    } else {
+      // Not found = not a member
+      showLoginError('No account found for that email. Request access below.');
+    }
+  } catch(e) {
+    showLoginError('Something went wrong. Please try again.');
   }
 }
 
